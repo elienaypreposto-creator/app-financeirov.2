@@ -118,19 +118,31 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: { onImportar: () =
         if (g.pend === 0 && g.conc > 0) g.status = "Conciliado";
         else if (g.conc > 0 && g.pend > 0) g.status = "Parcial";
 
-        // Formatar período robusto
+        // Formatar período robusto com ano (dd/mm/aa)
         if (g.minDate && g.maxDate) {
            const parseF = (s: string) => {
               if (!s) return "";
               s = s.split('T')[0].split(' ')[0];
               if (s.includes('-')) {
                  const pts = s.split('-');
-                 if (pts[0].length === 4) return `${pts[2]}/${pts[1]}`; // YYYY-MM-DD
-                 return `${pts[0]}/${pts[1]}`; // DD-MM-YYYY
+                 if (pts[0].length === 4) {
+                   // YYYY-MM-DD -> dd/mm/aa
+                   const year = pts[0].slice(-2);
+                   return `${pts[2]}/${pts[1]}/${year}`;
+                 }
+                 // DD-MM-YYYY -> dd/mm/aa
+                 const year = pts[2].slice(-2);
+                 return `${pts[0]}/${pts[1]}/${year}`;
               } else if (s.includes('/')) {
                  const pts = s.split('/');
-                 if (pts[0].length === 4) return `${pts[2]}/${pts[1]}`; // YYYY/MM/DD
-                 return `${pts[0]}/${pts[1]}`; // DD/MM/YYYY
+                 if (pts[0].length === 4) {
+                   // YYYY/MM/DD -> dd/mm/aa
+                   const year = pts[0].slice(-2);
+                   return `${pts[2]}/${pts[1]}/${year}`;
+                 }
+                 // DD/MM/YYYY -> dd/mm/aa
+                 const year = pts[2].slice(-2);
+                 return `${pts[0]}/${pts[1]}/${year}`;
               }
               return s;
            };
@@ -150,19 +162,40 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: { onImportar: () =
 
   useEffect(() => { loadData(); }, []);
 
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  
   const handleDeleteGroup = async (group: any) => {
     if (!window.confirm(`Tem certeza que deseja excluir as transações importadas do ${group.bank}?`)) return;
-    const supabase = createClient();
-    const dateKey = group.id.split('|').pop();
     
-    // We visually delete by tearing down all txs from that bank+tipo on that created_at date (lazy approach for grouping logic)
-    // For absolute accuracy, an import_id column is best, but this works purely via DB text startsWith logic.
-    await supabase.from('transactions').delete()
-      .eq('banco', group.bank)
-      .eq('tipo_conta', group.tipo.replace('Conta ', ''))
-      .like('created_at', `${dateKey}%`);
+    setIsDeleting(group.id);
     
-    loadData();
+    try {
+      const supabase = createClient();
+      const dateKey = group.id.split('|').pop();
+      const tipoValue = group.tipo.replace('Conta ', '');
+      
+      // Deletar transações usando filtros mais precisos
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('banco', group.bank)
+        .eq('tipo_conta', tipoValue)
+        .gte('created_at', `${dateKey}T00:00:00`)
+        .lt('created_at', `${dateKey}T23:59:59.999999`);
+      
+      if (error) {
+        console.error('[v0] Erro ao deletar:', error);
+        alert('Erro ao excluir as transações. Tente novamente.');
+      } else {
+        // Remover do estado local imediatamente para feedback visual rápido
+        setDbGroups(prev => prev.filter(g => g.id !== group.id));
+      }
+    } catch (err) {
+      console.error('[v0] Erro ao deletar:', err);
+      alert('Erro ao excluir as transações. Tente novamente.');
+    } finally {
+      setIsDeleting(null);
+    }
   };
 
   const filteredGroups = dbGroups.filter(g => {
@@ -265,7 +298,7 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: { onImportar: () =
               <th className="px-6 py-5">DATA</th>
               <th className="px-6 py-5">Banco Origem</th>
               <th className="px-6 py-5">Tipo Conta</th>
-              <th className="px-6 py-5 border-x-2 border-slate-100 bg-white min-w-[120px] text-center">Período</th>
+              <th className="px-6 py-5 min-w-[160px] text-center">Período</th>
               <th className="px-6 py-5 text-center">Conciliados (OK)</th>
               <th className="px-6 py-5 text-center text-slate-400">Lanç. Pendentes</th>
               <th className="px-6 py-5 text-center">Ações</th>
@@ -289,7 +322,7 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: { onImportar: () =
                 <td className="px-6 py-4 text-[10px] font-black text-emerald-600 tracking-widest">
                   CONTA {group.tipo.replace('Conta ', '').toUpperCase()}
                 </td>
-                <td className="px-6 py-4 text-center border-x-2 border-slate-50 bg-white font-extrabold text-slate-700">
+                <td className="px-6 py-4 text-center font-extrabold text-slate-700">
                   {group.period}
                 </td>
                 <td className="px-6 py-4 text-center font-bold">
@@ -301,7 +334,13 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: { onImportar: () =
                 <td className="px-6 py-4">
                   <div className="flex justify-center gap-3 text-slate-400">
                      <span title="Continuar Classificando" className="bg-slate-100 border border-slate-200 p-2 rounded-lg cursor-pointer hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all" onClick={() => onEditGroup(group)}><PencilLine className="w-4 h-4" /></span>
-                     <span title="Excluir Extrato Inteiro" className="bg-slate-100 border border-slate-200 p-2 rounded-lg cursor-pointer hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all" onClick={() => handleDeleteGroup(group)}><Trash className="w-4 h-4" /></span>
+                     <span 
+                       title="Excluir Extrato Inteiro" 
+                       className={`bg-slate-100 border border-slate-200 p-2 rounded-lg cursor-pointer hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all ${isDeleting === group.id ? 'opacity-50 pointer-events-none' : ''}`} 
+                       onClick={() => handleDeleteGroup(group)}
+                     >
+                       {isDeleting === group.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash className="w-4 h-4" />}
+                     </span>
                   </div>
                 </td>
               </tr>
