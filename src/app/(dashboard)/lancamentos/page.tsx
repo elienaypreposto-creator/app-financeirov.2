@@ -118,19 +118,31 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: { onImportar: () =
         if (g.pend === 0 && g.conc > 0) g.status = "Conciliado";
         else if (g.conc > 0 && g.pend > 0) g.status = "Parcial";
 
-        // Formatar período robusto
+        // Formatar período robusto com ano (dd/mm/aa)
         if (g.minDate && g.maxDate) {
            const parseF = (s: string) => {
               if (!s) return "";
               s = s.split('T')[0].split(' ')[0];
               if (s.includes('-')) {
                  const pts = s.split('-');
-                 if (pts[0].length === 4) return `${pts[2]}/${pts[1]}`; // YYYY-MM-DD
-                 return `${pts[0]}/${pts[1]}`; // DD-MM-YYYY
+                 if (pts[0].length === 4) {
+                   // YYYY-MM-DD -> dd/mm/aa
+                   const year = pts[0].slice(-2);
+                   return `${pts[2]}/${pts[1]}/${year}`;
+                 }
+                 // DD-MM-YYYY -> dd/mm/aa
+                 const year = pts[2].slice(-2);
+                 return `${pts[0]}/${pts[1]}/${year}`;
               } else if (s.includes('/')) {
                  const pts = s.split('/');
-                 if (pts[0].length === 4) return `${pts[2]}/${pts[1]}`; // YYYY/MM/DD
-                 return `${pts[0]}/${pts[1]}`; // DD/MM/YYYY
+                 if (pts[0].length === 4) {
+                   // YYYY/MM/DD -> dd/mm/aa
+                   const year = pts[0].slice(-2);
+                   return `${pts[2]}/${pts[1]}/${year}`;
+                 }
+                 // DD/MM/YYYY -> dd/mm/aa
+                 const year = pts[2].slice(-2);
+                 return `${pts[0]}/${pts[1]}/${year}`;
               }
               return s;
            };
@@ -150,19 +162,40 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: { onImportar: () =
 
   useEffect(() => { loadData(); }, []);
 
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
+  
   const handleDeleteGroup = async (group: any) => {
     if (!window.confirm(`Tem certeza que deseja excluir as transações importadas do ${group.bank}?`)) return;
-    const supabase = createClient();
-    const dateKey = group.id.split('|').pop();
     
-    // We visually delete by tearing down all txs from that bank+tipo on that created_at date (lazy approach for grouping logic)
-    // For absolute accuracy, an import_id column is best, but this works purely via DB text startsWith logic.
-    await supabase.from('transactions').delete()
-      .eq('banco', group.bank)
-      .eq('tipo_conta', group.tipo.replace('Conta ', ''))
-      .like('created_at', `${dateKey}%`);
+    setIsDeleting(group.id);
     
-    loadData();
+    try {
+      const supabase = createClient();
+      const dateKey = group.id.split('|').pop();
+      const tipoValue = group.tipo.replace('Conta ', '');
+      
+      // Deletar transações usando filtros mais precisos
+      const { error } = await supabase
+        .from('transactions')
+        .delete()
+        .eq('banco', group.bank)
+        .eq('tipo_conta', tipoValue)
+        .gte('created_at', `${dateKey}T00:00:00`)
+        .lt('created_at', `${dateKey}T23:59:59.999999`);
+      
+      if (error) {
+        console.error('[v0] Erro ao deletar:', error);
+        alert('Erro ao excluir as transações. Tente novamente.');
+      } else {
+        // Remover do estado local imediatamente para feedback visual rápido
+        setDbGroups(prev => prev.filter(g => g.id !== group.id));
+      }
+    } catch (err) {
+      console.error('[v0] Erro ao deletar:', err);
+      alert('Erro ao excluir as transações. Tente novamente.');
+    } finally {
+      setIsDeleting(null);
+    }
   };
 
   const filteredGroups = dbGroups.filter(g => {
@@ -265,7 +298,7 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: { onImportar: () =
               <th className="px-6 py-5">DATA</th>
               <th className="px-6 py-5">Banco Origem</th>
               <th className="px-6 py-5">Tipo Conta</th>
-              <th className="px-6 py-5 border-x-2 border-slate-100 bg-white min-w-[120px] text-center">Período</th>
+              <th className="px-6 py-5 min-w-[160px] text-center">Período</th>
               <th className="px-6 py-5 text-center">Conciliados (OK)</th>
               <th className="px-6 py-5 text-center text-slate-400">Lanç. Pendentes</th>
               <th className="px-6 py-5 text-center">Ações</th>
@@ -289,7 +322,7 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: { onImportar: () =
                 <td className="px-6 py-4 text-[10px] font-black text-emerald-600 tracking-widest">
                   CONTA {group.tipo.replace('Conta ', '').toUpperCase()}
                 </td>
-                <td className="px-6 py-4 text-center border-x-2 border-slate-50 bg-white font-extrabold text-slate-700">
+                <td className="px-6 py-4 text-center font-extrabold text-slate-700">
                   {group.period}
                 </td>
                 <td className="px-6 py-4 text-center font-bold">
@@ -299,9 +332,15 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: { onImportar: () =
                    {group.pend > 0 ? <span className="bg-rose-100 text-rose-600 px-3 py-1.5 rounded-full font-black text-[10px] tracking-widest">{group.pend} PENDENTES</span> : <span className="text-slate-300">-</span>}
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex justify-center gap-4 text-slate-400">
-                     <span title="Continuar Classificando" className="bg-slate-800 p-2 rounded-lg cursor-pointer hover:bg-primary hover:text-primary-foreground transition-all" onClick={() => onEditGroup(group)}><PencilLine className="w-4 h-4" /></span>
-                     <span title="Excluir Extrato Inteiro" className="bg-slate-800 p-2 rounded-lg cursor-pointer hover:bg-rose-500 hover:text-white transition-all" onClick={() => handleDeleteGroup(group)}><Trash className="w-4 h-4" /></span>
+                  <div className="flex justify-center gap-3 text-slate-400">
+                     <span title="Continuar Classificando" className="bg-slate-100 border border-slate-200 p-2 rounded-lg cursor-pointer hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all" onClick={() => onEditGroup(group)}><PencilLine className="w-4 h-4" /></span>
+                     <span 
+                       title="Excluir Extrato Inteiro" 
+                       className={`bg-slate-100 border border-slate-200 p-2 rounded-lg cursor-pointer hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all ${isDeleting === group.id ? 'opacity-50 pointer-events-none' : ''}`} 
+                       onClick={() => handleDeleteGroup(group)}
+                     >
+                       {isDeleting === group.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash className="w-4 h-4" />}
+                     </span>
                   </div>
                 </td>
               </tr>
@@ -317,7 +356,7 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: { onImportar: () =
         )}
         {!isLoading && filteredGroups.length === 0 && (
            <div className="flex items-center justify-center p-12 mb-2">
-             <div className="bg-slate-800/40 border border-slate-700 rounded-lg px-8 py-5 text-slate-400 text-sm font-medium">
+             <div className="bg-slate-50 border border-slate-200 rounded-xl px-8 py-5 text-slate-500 text-sm font-medium">
                Nenhuma transação. Importe um ficheiro acima.
              </div>
            </div>
@@ -572,7 +611,44 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
       }
       
       if (parsed.length > 0) {
-        setTransactions(parsed);
+        // Verificar duplicatas antes de adicionar
+        const { data: authData } = await supabase.auth.getUser();
+        if (authData?.user) {
+          const { data: existing } = await supabase.from('transactions')
+            .select('data_transacao, valor, descricao')
+            .eq('user_id', authData.user.id)
+            .eq('banco', selectedBank);
+
+          if (existing && existing.length > 0) {
+            // Marcar transações que já existem
+            let duplicateCount = 0;
+            const filteredParsed = parsed.filter(t => {
+              const isDuplicate = existing.some(ex => 
+                ex.data_transacao === t.date && 
+                Number(ex.valor) === t.value && 
+                ex.descricao === t.desc
+              );
+              if (isDuplicate) duplicateCount++;
+              return !isDuplicate;
+            });
+
+            if (duplicateCount > 0) {
+              if (filteredParsed.length === 0) {
+                alert(`Todas as ${duplicateCount} transações deste extrato já foram importadas anteriormente para esta conta.`);
+                // Limpa o input para permitir selecionar o mesmo arquivo novamente
+                if (fileInputRef.current) fileInputRef.current.value = '';
+                return;
+              } else {
+                alert(`Atenção: ${duplicateCount} transação(ões) já conciliada(s) anteriormente foram removidas.\n\nRestam ${filteredParsed.length} transações novas para classificar.`);
+              }
+            }
+            setTransactions(filteredParsed);
+          } else {
+            setTransactions(parsed);
+          }
+        } else {
+          setTransactions(parsed);
+        }
       } else {
         alert("O extrato não possui colunas ou tags reconhecíveis. Verifique se é um arquivo CSV ou OFX bancário válido.");
       }
@@ -580,6 +656,9 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
       console.error(err);
       alert("Erro ao ler arquivo.");
     }
+    
+    // Limpa o input para permitir selecionar o mesmo arquivo novamente se necessário
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   // Efeito para avisar ao tentar fechar aba
@@ -749,73 +828,73 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
       
       {/* Modal Nova Categoria */}
       <Dialog open={isNewCategoryModalOpen} onOpenChange={setNewCategoryModalOpen}>
-        <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 text-slate-200">
-          <DialogHeader><DialogTitle>Nova Categoria</DialogTitle></DialogHeader>
+        <DialogContent className="sm:max-w-md bg-white border-slate-200 text-slate-800 shadow-xl rounded-2xl">
+          <DialogHeader><DialogTitle className="text-slate-800 font-black">Nova Categoria</DialogTitle></DialogHeader>
           <div className="space-y-4 pt-4">
              <div className="space-y-1.5">
-               <label className="text-sm font-semibold text-slate-400">Nome da Categoria</label>
-               <input type="text" value={newCatName} onChange={e=>setNewCatName(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-md p-2 text-sm focus:border-primary outline-none" placeholder="Ex: Combustível" />
+               <label className="text-sm font-semibold text-slate-500">Nome da Categoria</label>
+               <input type="text" value={newCatName} onChange={e=>setNewCatName(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all" placeholder="Ex: Combustível" />
              </div>
              <div className="flex gap-6 pt-2 pb-2">
-               <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-300">
+               <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700">
                  <input type="radio" name="cat_tipo" value="entrada" checked={newCatType === "entrada"} onChange={e=>setNewCatType(e.target.value)} className="accent-emerald-500 w-4 h-4 cursor-pointer" /> Entrada
                </label>
-               <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-300">
+               <label className="flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700">
                  <input type="radio" name="cat_tipo" value="saida" checked={newCatType === "saida"} onChange={e=>setNewCatType(e.target.value)} className="accent-rose-500 w-4 h-4 cursor-pointer" /> Saída
                </label>
              </div>
-             <Button onClick={handleSaveNewCategory} className="w-full mt-2 font-bold">Salvar Categoria</Button>
+             <Button onClick={handleSaveNewCategory} className="w-full mt-2 font-bold bg-emerald-500 hover:bg-emerald-600 text-white">Salvar Categoria</Button>
           </div>
         </DialogContent>
       </Dialog>
 
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={handleIntentBack} className="text-slate-400 hover:text-slate-200 bg-slate-900 hover:bg-slate-800">
+        <Button variant="ghost" size="icon" onClick={handleIntentBack} className="text-slate-500 hover:text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 shadow-sm">
            <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-slate-100">Configuração de Ficheiro</h1>
-          <p className="text-slate-400 text-sm">Realize a leitura inteligente do extrato bancário</p>
+          <h1 className="text-2xl font-bold text-slate-800">Importação de arquivo</h1>
+          <p className="text-slate-500 text-sm">Realize a leitura inteligente do extrato bancário</p>
         </div>
       </div>
 
-      <Card className="bg-slate-900 border-slate-800 shadow-2xl overflow-visible relative">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none z-0"></div>
+      <Card className="bg-white border-slate-200 shadow-xl overflow-visible relative rounded-2xl">
+        <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none z-0"></div>
         <CardContent className="pt-6 pb-6 flex flex-col md:flex-row items-center justify-between gap-6 z-10 relative">
-           <div className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity flex-1 bg-slate-950 p-4 border border-dashed border-primary/40 rounded-xl" onClick={handleFileUploadClick}>
-             <div className="p-3 bg-primary/20 text-primary rounded-lg shadow-sm">
+           <div className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity flex-1 bg-slate-50 p-4 border border-dashed border-emerald-500/40 rounded-xl" onClick={handleFileUploadClick}>
+             <div className="p-3 bg-emerald-500/20 text-emerald-600 rounded-lg shadow-sm">
                 <Upload className="w-8 h-8" />
              </div>
              <div>
-                <h2 className="font-bold text-primary text-xl">Upload do Arquivo</h2>
-                <p className="text-sm text-slate-400 leading-tight">Escolha um extrato em `.csv` ou `.ofx`. A IA lerá tudo instantaneamente.</p>
+                <h2 className="font-bold text-emerald-600 text-xl">Upload do Arquivo</h2>
+                <p className="text-sm text-slate-500 leading-tight">Escolha um extrato em `.csv` ou `.ofx`. A IA lerá tudo instantaneamente.</p>
              </div>
            </div>
            
            {!loadingAccounts && registeredAccounts.length === 0 && (
-             <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6 text-center rounded-xl border-2 border-dashed border-rose-500/50">
+             <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-50 flex flex-col items-center justify-center p-6 text-center rounded-xl border-2 border-dashed border-rose-500/50">
                 <AlertCircle className="w-12 h-12 text-rose-500 mb-2" />
-                <h3 className="text-xl font-bold text-slate-100">Nenhuma Conta Cadastrada</h3>
-                <p className="text-slate-400 mb-4 max-w-sm">Você precisa cadastrar pelo menos uma conta bancária no menu lateral (CONTAS CONFIGURADAS) antes de importar extratos.</p>
-                <Button onClick={onBack} variant="outline" className="border-slate-700">Voltar</Button>
+                <h3 className="text-xl font-bold text-slate-800">Nenhuma Conta Cadastrada</h3>
+                <p className="text-slate-500 mb-4 max-w-sm">Você precisa cadastrar pelo menos uma conta bancária no menu lateral (CONTAS CONFIGURADAS) antes de importar extratos.</p>
+                <Button onClick={onBack} variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50">Voltar</Button>
              </div>
            )}
 
            <div className="flex gap-4 items-center">
              <div className="flex flex-col gap-1.5">
-               <span className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Banco Origem</span>
+               <span className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Banco Origem</span>
                <Select value={selectedBank} onValueChange={(v: string | null) => {
                   const val = v || "";
                   setSelectedBank(val);
                   const acc = registeredAccounts.find(a => a.name === val);
                   if (acc) setSelectedConta(acc.type || "PJ");
                 }}>
-                 <SelectTrigger className="w-[200px] bg-slate-950 border-slate-800 text-slate-200 h-10 font-bold">
+                 <SelectTrigger className="w-[200px] bg-white border-slate-200 text-slate-800 h-10 font-bold rounded-xl focus:ring-emerald-500">
                    <SelectValue placeholder="Escolha a Conta" />
                  </SelectTrigger>
-                 <SelectContent>
+                 <SelectContent className="bg-white border-slate-200 rounded-xl">
                    {registeredAccounts.map(acc => (
-                     <SelectItem key={acc.id} value={acc.name} className="font-semibold text-slate-300">
+                     <SelectItem key={acc.id} value={acc.name} className="font-semibold text-slate-700">
                        {acc.name} ({acc.account})
                      </SelectItem>
                    ))}
@@ -824,8 +903,8 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
              </div>
 
              <div className="flex flex-col gap-1.5">
-               <span className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Identificação</span>
-                <div className="h-10 px-4 flex items-center justify-center bg-slate-800 text-primary border border-slate-700 rounded-lg font-black text-sm tracking-widest min-w-[70px]">
+               <span className="text-xs font-bold text-slate-400 uppercase tracking-widest pl-1">Identificação</span>
+                <div className="h-10 px-4 flex items-center justify-center bg-white text-emerald-600 border border-slate-200 rounded-xl font-black text-sm tracking-widest min-w-[70px] shadow-sm">
                   {selectedConta.toUpperCase()}
                 </div>
              </div>
@@ -835,63 +914,63 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
 
       <div className="mt-2">
          {transactions.length > 0 && (
-           <h2 className="text-lg font-bold text-primary flex items-center gap-2 mb-4">
+           <h2 className="text-lg font-bold text-emerald-600 flex items-center gap-2 mb-4">
              <Search className="w-4 h-4" /> {transactions.length} Transações Lidas pela IA
            </h2>
          )}
 
          {transactions.length > 0 && (
-           <div className="border border-slate-800/80 rounded-lg overflow-hidden bg-slate-900/40 flex flex-col shadow-xl">
-             <table className="w-full text-sm text-left text-slate-300">
-               <thead className="text-[10px] text-slate-500 font-bold uppercase tracking-wider bg-slate-950">
+           <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white flex flex-col shadow-xl">
+             <table className="w-full text-sm text-left text-slate-700">
+               <thead className="text-[10px] text-slate-400 font-black uppercase tracking-widest bg-slate-50 border-b border-slate-100">
                   <tr>
-                    <th className="px-4 py-3 w-10 text-center">OK</th>
-                    <th className="px-4 py-3">Data Ref.</th>
-                    <th className="px-4 py-3">Histórico / Descrição</th>
-                    <th className="px-4 py-3">Cifras</th>
-                    <th className="px-4 py-3">Plano de Contas</th>
-                    <th className="px-4 py-3 text-center">Ignorar</th>
+                    <th className="px-4 py-4 w-10 text-center">OK</th>
+                    <th className="px-4 py-4">Data Ref.</th>
+                    <th className="px-4 py-4">Histórico / Descrição</th>
+                    <th className="px-4 py-4">Cifras</th>
+                    <th className="px-4 py-4">Plano de Contas</th>
+                    <th className="px-4 py-4 text-center">Ignorar</th>
                   </tr>
                </thead>
                <tbody>
                  {transactions.map((t) => {
                    const isChecked = !!t.cat || t.ignored;
                    return (
-                   <tr key={t.id} className={`border-b border-slate-800/40 transition-colors ${t.ignored ? 'opacity-30 grayscale bg-slate-950' : 'hover:bg-slate-800/40'} ${isChecked && !t.ignored ? 'bg-primary/5' : ''}`}>
+                   <tr key={t.id} className={`border-b border-slate-100 transition-colors ${t.ignored ? 'opacity-30 grayscale bg-slate-50' : 'hover:bg-slate-50/50'} ${isChecked && !t.ignored ? 'bg-emerald-50/30' : ''}`}>
                      <td className="px-4 py-3 text-center">
-                        <input type="checkbox" checked={isChecked} readOnly className="accent-primary w-4 h-4 cursor-not-allowed opacity-80" />
+                        <input type="checkbox" checked={isChecked} readOnly className="accent-emerald-500 w-4 h-4 cursor-not-allowed opacity-80" />
                      </td>
-                     <td className="px-4 py-3 whitespace-nowrap text-slate-400 font-mono text-xs">{t.date}</td>
-                     <td className="px-4 py-3 font-semibold text-slate-200 max-w-[200px] truncate" title={t.desc}>{t.desc}</td>
-                     <td className={`px-4 py-3 font-bold whitespace-nowrap text-right ${t.value > 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                     <td className="px-4 py-3 whitespace-nowrap text-slate-500 font-mono text-xs">{t.date}</td>
+                     <td className="px-4 py-3 font-semibold text-slate-800 max-w-[200px] truncate" title={t.desc}>{t.desc}</td>
+                     <td className={`px-4 py-3 font-bold whitespace-nowrap text-right ${t.value > 0 ? "text-emerald-600" : "text-rose-600"}`}>
                         {formatCurrency(t.value)}
                      </td>
                      <td className="px-4 py-3">
                         <Select value={t.cat || ""} onValueChange={(val) => handleCategoryChange(val, t.id)} disabled={isChecked && !t.ignored}>
-                          <SelectTrigger className={`w-[220px] bg-slate-950 border-slate-700/50 font-semibold shadow-inner transition-colors ${t.value > 0 ? 'text-emerald-300' : 'text-rose-300'} disabled:opacity-100 disabled:select-none`}>
+                          <SelectTrigger className={`w-[220px] bg-white border-slate-200 font-semibold shadow-sm transition-colors rounded-xl ${t.value > 0 ? 'text-emerald-600' : 'text-rose-600'} disabled:opacity-100 disabled:select-none`}>
                             <SelectValue placeholder="Selecionar Categoria" />
                           </SelectTrigger>
-                          <SelectContent className="max-h-[300px]">
+                          <SelectContent className="max-h-[300px] bg-white border-slate-200 rounded-xl">
                             {t.value >= 0 ? (
                                <SelectGroup>
-                                 <SelectLabel className="text-emerald-400 tracking-widest uppercase text-[10px]">Entradas</SelectLabel>
-                                 {categorias.entradas.map(c => <SelectItem key={c} value={c} className="font-semibold text-slate-200">{c}</SelectItem>)}
+                                 <SelectLabel className="text-emerald-600 tracking-widest uppercase text-[10px]">Entradas</SelectLabel>
+                                 {categorias.entradas.map(c => <SelectItem key={c} value={c} className="font-semibold text-slate-700">{c}</SelectItem>)}
                                </SelectGroup>
                             ) : (
                                <SelectGroup>
-                                 <SelectLabel className="text-rose-400 tracking-widest uppercase text-[10px]">Saídas</SelectLabel>
-                                 {categorias.saidas.map(c => <SelectItem key={c} value={c} className="font-semibold text-slate-200">{c}</SelectItem>)}
+                                 <SelectLabel className="text-rose-600 tracking-widest uppercase text-[10px]">Saídas</SelectLabel>
+                                 {categorias.saidas.map(c => <SelectItem key={c} value={c} className="font-semibold text-slate-700">{c}</SelectItem>)}
                                </SelectGroup>
                             )}
-                            <div className="h-px bg-slate-800 my-1" />
-                            <SelectItem value="NEW_CATEGORY" className="text-primary font-bold">➕ Nova Categoria...</SelectItem>
+                            <div className="h-px bg-slate-100 my-1" />
+                            <SelectItem value="NEW_CATEGORY" className="text-emerald-600 font-bold">+ Nova Categoria...</SelectItem>
                           </SelectContent>
                         </Select>
                      </td>
                      <td className="px-4 py-3">
                         <div className="flex justify-center gap-4">
-                          <span title="Limpar Categoria / Editar"><PencilLine className="w-4 h-4 cursor-pointer text-slate-500 hover:text-primary transition-colors" onClick={() => clearCategory(t.id)} /></span>
-                          <span title={t.ignored ? "Restaurar Linha" : "Remover do Cálculo"}><Ban className={`w-4 h-4 cursor-pointer transition-colors ${t.ignored ? 'text-rose-500 outline outline-rose-500/20 rounded border border-rose-500 bg-rose-500/10' : 'text-slate-600 hover:text-rose-500'}`} onClick={() => toggleIgnore(t.id)} /></span>
+                          <span title="Limpar Categoria / Editar"><PencilLine className="w-4 h-4 cursor-pointer text-slate-400 hover:text-emerald-600 transition-colors" onClick={() => clearCategory(t.id)} /></span>
+                          <span title={t.ignored ? "Restaurar Linha" : "Remover do Cálculo"}><Ban className={`w-4 h-4 cursor-pointer transition-colors ${t.ignored ? 'text-rose-500 outline outline-rose-500/20 rounded border border-rose-500 bg-rose-500/10' : 'text-slate-400 hover:text-rose-500'}`} onClick={() => toggleIgnore(t.id)} /></span>
                         </div>
                      </td>
                    </tr>

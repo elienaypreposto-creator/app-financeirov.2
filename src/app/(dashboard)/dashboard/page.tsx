@@ -360,11 +360,11 @@ export default function DashboardPage() {
                   </div>
                 </Card>
 
-                <Card className="bg-slate-900 shadow-2xl shadow-slate-900/20 border-0 rounded-[2.5rem] p-10 flex flex-col justify-center min-h-[350px] relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-primary/20 rounded-full blur-3xl -mr-32 -mt-32 transition-transform group-hover:scale-110"></div>
-                  <CardHeader className="p-0 pb-6 relative z-10"><CardTitle className="text-xl font-black text-primary flex items-center gap-4"><Sparkles className="w-8 h-8 animate-pulse" /> Sobra Líquida</CardTitle></CardHeader>
+                <Card className="bg-white border-slate-200 shadow-xl rounded-[2.5rem] p-10 flex flex-col justify-center min-h-[350px] relative overflow-hidden group border-b-8 border-b-emerald-500">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl -mr-32 -mt-32 transition-transform group-hover:scale-110"></div>
+                  <CardHeader className="p-0 pb-6 relative z-10"><CardTitle className="text-xl font-black text-emerald-600 flex items-center gap-4"><Sparkles className="w-8 h-8 animate-pulse" /> Sobra Líquida</CardTitle></CardHeader>
                   <CardContent className="p-0 relative z-10">
-                     <span className="font-black text-white text-6xl tracking-tighter block mb-6">R$ {statsPF.sobra.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
+                     <span className="font-black text-slate-800 text-6xl tracking-tighter block mb-6">R$ {statsPF.sobra.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span>
                      <p className="text-slate-400 text-xs font-bold uppercase tracking-[0.3em] opacity-60">Saldo final disponível no CPF</p>
                   </CardContent>
                 </Card>
