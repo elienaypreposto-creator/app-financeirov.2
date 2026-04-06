@@ -299,9 +299,9 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: { onImportar: () =
                    {group.pend > 0 ? <span className="bg-rose-100 text-rose-600 px-3 py-1.5 rounded-full font-black text-[10px] tracking-widest">{group.pend} PENDENTES</span> : <span className="text-slate-300">-</span>}
                 </td>
                 <td className="px-6 py-4">
-                  <div className="flex justify-center gap-4 text-slate-400">
-                     <span title="Continuar Classificando" className="bg-slate-800 p-2 rounded-lg cursor-pointer hover:bg-primary hover:text-primary-foreground transition-all" onClick={() => onEditGroup(group)}><PencilLine className="w-4 h-4" /></span>
-                     <span title="Excluir Extrato Inteiro" className="bg-slate-800 p-2 rounded-lg cursor-pointer hover:bg-rose-500 hover:text-white transition-all" onClick={() => handleDeleteGroup(group)}><Trash className="w-4 h-4" /></span>
+                  <div className="flex justify-center gap-3 text-slate-400">
+                     <span title="Continuar Classificando" className="bg-slate-100 border border-slate-200 p-2 rounded-lg cursor-pointer hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all" onClick={() => onEditGroup(group)}><PencilLine className="w-4 h-4" /></span>
+                     <span title="Excluir Extrato Inteiro" className="bg-slate-100 border border-slate-200 p-2 rounded-lg cursor-pointer hover:bg-rose-500 hover:text-white hover:border-rose-500 transition-all" onClick={() => handleDeleteGroup(group)}><Trash className="w-4 h-4" /></span>
                   </div>
                 </td>
               </tr>
@@ -572,7 +572,44 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
       }
       
       if (parsed.length > 0) {
-        setTransactions(parsed);
+        // Verificar duplicatas antes de adicionar
+        const { data: authData } = await supabase.auth.getUser();
+        if (authData?.user) {
+          const { data: existing } = await supabase.from('transactions')
+            .select('data_transacao, valor, descricao')
+            .eq('user_id', authData.user.id)
+            .eq('banco', selectedBank);
+
+          if (existing && existing.length > 0) {
+            // Marcar transações que já existem
+            let duplicateCount = 0;
+            const filteredParsed = parsed.filter(t => {
+              const isDuplicate = existing.some(ex => 
+                ex.data_transacao === t.date && 
+                Number(ex.valor) === t.value && 
+                ex.descricao === t.desc
+              );
+              if (isDuplicate) duplicateCount++;
+              return !isDuplicate;
+            });
+
+            if (duplicateCount > 0) {
+              if (filteredParsed.length === 0) {
+                alert(`Todas as ${duplicateCount} transações deste extrato já foram importadas anteriormente para esta conta.`);
+                // Limpa o input para permitir selecionar o mesmo arquivo novamente
+                if (fileInputRef.current) fileInputRef.current.value = '';
+                return;
+              } else {
+                alert(`Atenção: ${duplicateCount} transação(ões) já conciliada(s) anteriormente foram removidas.\n\nRestam ${filteredParsed.length} transações novas para classificar.`);
+              }
+            }
+            setTransactions(filteredParsed);
+          } else {
+            setTransactions(parsed);
+          }
+        } else {
+          setTransactions(parsed);
+        }
       } else {
         alert("O extrato não possui colunas ou tags reconhecíveis. Verifique se é um arquivo CSV ou OFX bancário válido.");
       }
@@ -580,6 +617,9 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
       console.error(err);
       alert("Erro ao ler arquivo.");
     }
+    
+    // Limpa o input para permitir selecionar o mesmo arquivo novamente se necessário
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   // Efeito para avisar ao tentar fechar aba
@@ -774,7 +814,7 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
            <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Configuração de Ficheiro</h1>
+          <h1 className="text-2xl font-bold text-slate-800">Importação de arquivo</h1>
           <p className="text-slate-500 text-sm">Realize a leitura inteligente do extrato bancário</p>
         </div>
       </div>
