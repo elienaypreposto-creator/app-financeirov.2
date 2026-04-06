@@ -181,22 +181,22 @@ export function Sidebar() {
              <DialogTrigger className="text-primary hover:text-primary/70 bg-primary/10 p-1.5 rounded-md transition-colors" title="Nova Conta" onClick={resetForm}>
                  <Plus className="w-4 h-4" />
              </DialogTrigger>
-             <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 text-slate-200">
+             <DialogContent className="sm:max-w-md bg-white border-slate-200 text-slate-800 shadow-xl rounded-2xl">
                <DialogHeader>
-                 <DialogTitle>{editingId ? "Editar Conta Bancária" : "Nova Conta Bancária"}</DialogTitle>
+                 <DialogTitle className="text-slate-800 font-black">{editingId ? "Editar Conta Bancária" : "Nova Conta Bancária"}</DialogTitle>
                </DialogHeader>
                <div className="space-y-4 pt-4">
                 <div className="flex gap-6">
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-bold">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700">
                     <input type="radio" name="tipo" value="pf" checked={tipo === 'pf'} onChange={e => setTipo(e.target.value)} className="accent-primary w-4 h-4" /> CONTA PF
                   </label>
-                  <label className="flex items-center gap-2 cursor-pointer text-sm font-bold">
+                  <label className="flex items-center gap-2 cursor-pointer text-sm font-bold text-slate-700">
                     <input type="radio" name="tipo" value="pj" checked={tipo === 'pj'} onChange={e => setTipo(e.target.value)} className="accent-primary w-4 h-4" /> CONTA PJ
                   </label>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-sm font-semibold text-slate-400">Banco</label>
-                  <select value={bankName} onChange={e => setBankName(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-md p-2 text-sm text-slate-200">
+                  <label className="text-sm font-semibold text-slate-500">Banco</label>
+                  <select value={bankName} onChange={e => setBankName(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-sm text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all">
                     <option>Banco do Brasil</option>
                     <option>Caixa</option>
                     <option>Itaú</option>
@@ -209,12 +209,12 @@ export function Sidebar() {
                 </div>
                  <div className="grid grid-cols-2 gap-4">
                    <div className="space-y-1.5">
-                     <label className="text-sm font-semibold text-slate-400">Agência</label>
-                     <input type="text" value={agency} onChange={e=>setAgency(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-md p-2 text-sm outline-none focus:border-primary" placeholder="0000" />
+                     <label className="text-sm font-semibold text-slate-500">Agência</label>
+                     <input type="text" value={agency} onChange={e=>setAgency(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-sm text-slate-800 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all" placeholder="0000" />
                    </div>
                    <div className="space-y-1.5">
-                     <label className="text-sm font-semibold text-slate-400">Conta Corrente/Poupança</label>
-                     <input type="text" value={account} onChange={e=>setAccount(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-md p-2 text-sm outline-none focus:border-primary" placeholder="00000-0" />
+                     <label className="text-sm font-semibold text-slate-500">Conta Corrente/Poupança</label>
+                     <input type="text" value={account} onChange={e=>setAccount(e.target.value)} className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-sm text-slate-800 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all" placeholder="00000-0" />
                    </div>
                  </div>
                  <div className="flex justify-between items-center mt-6">
@@ -223,7 +223,7 @@ export function Sidebar() {
                          <Trash2 className="w-4 h-4" /> Excluir
                       </button>
                    ) : <div />}
-                   <button type="button" onClick={handleSaveAccount} className="bg-primary text-primary-foreground font-bold p-2.5 px-6 rounded-md hover:bg-primary/90 transition-colors">
+                   <button type="button" onClick={handleSaveAccount} className="bg-emerald-500 text-white font-bold p-2.5 px-6 rounded-xl hover:bg-emerald-600 transition-colors shadow-md">
                      {editingId ? "Atualizar Conta" : "Cadastrar Nova Conta"}
                    </button>
                  </div>
