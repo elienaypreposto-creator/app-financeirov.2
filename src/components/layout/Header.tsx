@@ -120,56 +120,56 @@ export function Header() {
             <Settings className="w-4 h-4 text-slate-300 ml-1 group-hover:text-slate-500 transition-colors" />
           </button>
         } />
-        <DialogContent className="sm:max-w-md bg-slate-900 border-slate-800 text-slate-200 p-0 overflow-hidden shadow-2xl">
+        <DialogContent className="sm:max-w-md bg-white border-slate-200 text-slate-800 p-0 overflow-hidden shadow-2xl rounded-2xl">
           <DialogHeader className="p-6 pb-2">
-            <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <Settings className="w-5 h-5 text-primary" /> Configuração do Perfil
+            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-800">
+              <Settings className="w-5 h-5 text-emerald-600" /> Configuração do Perfil
             </DialogTitle>
           </DialogHeader>
           
           <div className="px-6 pb-6 space-y-5">
-             <div className="flex items-center gap-4 bg-slate-950/50 p-4 rounded-xl border border-slate-800/60 transition-colors">
+             <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 transition-colors">
                <div 
-                 className="relative group w-16 h-16 rounded-full border-2 border-slate-700 bg-slate-800 flex items-center justify-center overflow-hidden cursor-pointer shadow-lg"
+                 className="relative group w-16 h-16 rounded-full border-2 border-slate-200 bg-white flex items-center justify-center overflow-hidden cursor-pointer shadow-md"
                  onClick={() => fileInputRef.current?.click()}
                  title="Nova Imagem"
                >
                  {avatar ? (
                    <img src={avatar} className="w-full h-full object-cover" />
                  ) : (
-                   <Camera className="w-6 h-6 text-slate-500" />
+                   <Camera className="w-6 h-6 text-slate-400" />
                  )}
                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <Upload className="w-4 h-4 text-white" />
                  </div>
                </div>
                <div>
-                  <h3 className="text-sm font-bold text-slate-200">Foto de Identificação</h3>
+                  <h3 className="text-sm font-bold text-slate-800">Foto de Identificação</h3>
                   <p className="text-xs text-slate-500 max-w-[200px]">Formatos PNG ou JPG. Recomendado menos de 2MB. A imagem será sincronizada com sua conta.</p>
                </div>
                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
              </div>
 
              <div className="space-y-4">
-               <div className="space-y-1.5 focus-within:text-primary transition-colors">
-                 <Label htmlFor="edit-name" className="text-xs font-bold uppercase tracking-wider text-inherit pl-1">Nome Completo</Label>
-                 <Input id="edit-name" value={name} onChange={e=>setName(e.target.value)} disabled={isLoading} className="bg-slate-950 border-slate-800 h-11 px-4 font-semibold focus:border-primary disabled:opacity-50" />
+               <div className="space-y-1.5 focus-within:text-emerald-600 transition-colors">
+                 <Label htmlFor="edit-name" className="text-xs font-bold uppercase tracking-wider text-slate-500 pl-1">Nome Completo</Label>
+                 <Input id="edit-name" value={name} onChange={e=>setName(e.target.value)} disabled={isLoading} className="bg-white border-slate-200 h-11 px-4 font-semibold text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 rounded-xl" />
                </div>
                
                <div className="grid grid-cols-2 gap-4">
-                 <div className="space-y-1.5 focus-within:text-primary transition-colors">
-                    <Label htmlFor="edit-cpf" className="text-xs font-bold uppercase tracking-wider text-inherit pl-1">CPF Oficial</Label>
-                    <Input id="edit-cpf" value={cpf} onChange={e=>setCpf(e.target.value)} disabled={isLoading} className="bg-slate-950 border-slate-800 h-11 px-4 font-mono text-sm focus:border-primary disabled:opacity-50" />
+                 <div className="space-y-1.5 focus-within:text-emerald-600 transition-colors">
+                    <Label htmlFor="edit-cpf" className="text-xs font-bold uppercase tracking-wider text-slate-500 pl-1">CPF Oficial</Label>
+                    <Input id="edit-cpf" value={cpf} onChange={e=>setCpf(e.target.value)} disabled={isLoading} className="bg-white border-slate-200 h-11 px-4 font-mono text-sm text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 rounded-xl" />
                  </div>
-                 <div className="space-y-1.5 focus-within:text-primary transition-colors">
-                    <Label htmlFor="edit-cnpj" className="text-xs font-bold uppercase tracking-wider text-inherit pl-1">CNPJ Atrelado</Label>
-                    <Input id="edit-cnpj" value={cnpj} onChange={e=>setCnpj(e.target.value)} disabled={isLoading} placeholder="Opcional" className="bg-slate-950 border-slate-800 h-11 px-4 font-mono text-sm focus:border-primary disabled:opacity-50" />
+                 <div className="space-y-1.5 focus-within:text-emerald-600 transition-colors">
+                    <Label htmlFor="edit-cnpj" className="text-xs font-bold uppercase tracking-wider text-slate-500 pl-1">CNPJ Atrelado</Label>
+                    <Input id="edit-cnpj" value={cnpj} onChange={e=>setCnpj(e.target.value)} disabled={isLoading} placeholder="Opcional" className="bg-white border-slate-200 h-11 px-4 font-mono text-sm text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 rounded-xl" />
                  </div>
                </div>
 
-               <div className="space-y-1.5 focus-within:text-primary transition-colors">
-                 <Label htmlFor="edit-regime" className="text-xs font-bold uppercase tracking-wider text-inherit pl-1">Regime Tributário</Label>
-                 <select id="edit-regime" value={regime} onChange={e=>setRegime(e.target.value)} disabled={isLoading} className="w-full bg-slate-950 border border-slate-800 rounded-md h-11 px-4 font-semibold text-sm text-slate-200 focus:border-primary outline-none disabled:opacity-50">
+               <div className="space-y-1.5 focus-within:text-emerald-600 transition-colors">
+                 <Label htmlFor="edit-regime" className="text-xs font-bold uppercase tracking-wider text-slate-500 pl-1">Regime Tributário</Label>
+                 <select id="edit-regime" value={regime} onChange={e=>setRegime(e.target.value)} disabled={isLoading} className="w-full bg-white border border-slate-200 rounded-xl h-11 px-4 font-semibold text-sm text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none disabled:opacity-50 transition-all">
                    <option value="Pessoa Física Apenas (Sem Empresa)">Pessoa Física Apenas (Sem Empresa)</option>
                    <option value="MEI (Microempreendedor Individual)">MEI (Microempreendedor Individual)</option>
                    <option value="ME (Simples Nacional)">ME (Simples Nacional)</option>
@@ -177,7 +177,7 @@ export function Header() {
                </div>
 
                <div className="pt-2">
-                 <Button type="button" onClick={saveProfile} disabled={isSaving || isLoading} className="w-full h-12 font-bold bg-primary hover:bg-primary/90 text-primary-foreground text-sm uppercase tracking-widest transition-all active:scale-[0.98]">
+                 <Button type="button" onClick={saveProfile} disabled={isSaving || isLoading} className="w-full h-12 font-bold bg-emerald-500 hover:bg-emerald-600 text-white text-sm uppercase tracking-widest transition-all active:scale-[0.98] rounded-xl shadow-md">
                    {isSaving ? (
                       <span className="flex items-center gap-2"><Loader2 className="w-5 h-5 animate-spin"/> Atualizando...</span>
                    ) : showSuccess ? (
