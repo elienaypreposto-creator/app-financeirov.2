@@ -139,7 +139,6 @@ function smartParseXLSX(arrayBuffer: ArrayBuffer, bankName: string): Transaction
       });
     });
 
-    // Ordenação estável por data
     results.sort((a, b) => {
       const dateA = new Date(a.date.split('/').reverse().join('-'));
       const dateB = new Date(b.date.split('/').reverse().join('-'));
@@ -390,11 +389,9 @@ function ConciliacaoView({
         <div className="flex flex-col gap-2">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
           <Select
-            value={filterStatus ? filterStatus : "Todos"}
+            value={filterStatus || "Todos"}
             onValueChange={(value) => setFilterStatus(value as string | null)}
           >
-            ...
-          </Select>
             <SelectTrigger className="w-[140px] bg-white border-slate-200 h-10 rounded-xl">
               <SelectValue />
             </SelectTrigger>
