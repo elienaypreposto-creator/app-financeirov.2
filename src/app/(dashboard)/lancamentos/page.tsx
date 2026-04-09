@@ -369,7 +369,8 @@ function ConciliacaoView({
   };
 
   const filteredGroups = dbGroups.filter(g => {
-    const matchStatus = filterStatus === "Todos" || g.status.toLowerCase() === filterStatus.toLowerCase();
+    // Adicionamos o !filterStatus para garantir que se for nulo, ele mostre todos e não quebre a página
+    const matchStatus = !filterStatus || filterStatus === "Todos" || g.status.toLowerCase() === filterStatus.toLowerCase();
     return matchStatus;
   });
 
