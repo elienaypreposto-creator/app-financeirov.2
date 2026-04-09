@@ -390,11 +390,11 @@ function ConciliacaoView({
         <div className="flex flex-col gap-2">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
           <Select
-  value={filterStatus ?? "Todos"}
-  onValueChange={(value) => setFilterStatus(value as string | null)}
->
-  ...
-</Select>
+            value={filterStatus ? filterStatus : "Todos"}
+            onValueChange={(value) => setFilterStatus(value as string | null)}
+          >
+            ...
+          </Select>
             <SelectTrigger className="w-[140px] bg-white border-slate-200 h-10 rounded-xl">
               <SelectValue />
             </SelectTrigger>
