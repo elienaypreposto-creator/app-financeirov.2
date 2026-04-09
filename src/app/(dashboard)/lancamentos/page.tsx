@@ -4,16 +4,13 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Upload, Search, Download, Trash, RefreshCw, Calendar, ArrowLeft, Ban, PencilLine, AlertCircle, Loader2, ChevronDown } from "lucide-react";
-import { Select, SelectContent, SelectGroup, SelectLabel, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuCheckboxItem } from "@/components/ui/dropdown-menu";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Upload, Search, Trash, PencilLine, ArrowLeft, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createClient } from "@/lib/supabase/client";
 import * as XLSX from "xlsx";
 
 // ========================================
-// TIPOS E INTERFACES
+// TIPOS
 // ========================================
 
 interface Transaction {
@@ -25,6 +22,22 @@ interface Transaction {
   cat?: string;
   ignored: boolean;
   import_batch_id: string;
+}
+
+interface Group {
+  id: string;
+  date: string;
+  bank: string;
+  tipo: string;
+  minDate: string;
+  maxDate: string;
+  conc: number;
+  ign: number;
+  pend: number;
+  total: number;
+  status: string;
+  batchId: string;
+  period: string;
 }
 
 // ========================================
@@ -141,7 +154,7 @@ function smartParseXLSX(arrayBuffer: ArrayBuffer, bankName: string): Transaction
 }
 
 function smartParseOFX(ofxText: string, bankName: string): Transaction[] {
-  const results = [];
+  const results: Transaction[] = [];
   const batchId = generateImportBatchId();
   const trnRegex = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/g;
   let match;
@@ -194,39 +207,23 @@ function downloadTemplateXLSX() {
   XLSX.writeFile(workbook, `template_fincontrol_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
-const BankLogo = ({ bank }: { bank: string }) => {
-  const map: Record<string, string> = {
-    'Santander': '/logos/santander.png',
-    'Inter': '/logos/inter.png',
-    'Mercado Pago': '/logos/mercadopago.png',
-    'Caixa': '/logos/caixa.png',
-    'Banco do Brasil': '/logos/bb.png',
-    'Itaú': '/logos/itau.png',
-    'Bradesco': '/logos/bradesco.png',
-    'Nubank': '/logos/nubank.png'
-  };
-  const src = map[bank] || '/logos/default.png';
-  return <img src={src} alt={bank} className="w-5 h-5 rounded-sm object-contain bg-white" onError={(e) => e.currentTarget.style.display = 'none'} />;
-}
-
 // ========================================
-// MAIN PAGE COMPONENT
+// MAIN PAGE
 // ========================================
 
 export default function LancamentosPage() {
   const [view, setView] = useState<"conciliacao" | "importacao">("conciliacao");
-  const [selectedGroup, setSelectedGroup] = useState<any | null>(null);
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const supabase = createClient();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setUserId(data.user?.id || null));
-  }, []);
+  }, [supabase]);
 
   if (view === "importacao") {
     return (
       <ImportacaoView
-        initialGroup={selectedGroup}
         onSave={() => { setView("conciliacao"); setSelectedGroup(null); }}
         onBack={() => { setView("conciliacao"); setSelectedGroup(null); }}
         userId={userId}
@@ -237,7 +234,7 @@ export default function LancamentosPage() {
   return (
     <ConciliacaoView
       onImportar={() => setView("importacao")}
-      onEditGroup={(group) => { setSelectedGroup(group); setView("importacao"); }}
+      onEditGroup={(group: Group) => { setSelectedGroup(group); setView("importacao"); }}
       userId={userId}
     />
   );
@@ -247,8 +244,16 @@ export default function LancamentosPage() {
 // CONCILIAÇÃO VIEW
 // ========================================
 
-function ConciliacaoView({ onImportar, onEditGroup, userId }: any) {
-  const [dbGroups, setDbGroups] = useState<any[]>([]);
+function ConciliacaoView({ 
+  onImportar, 
+  onEditGroup, 
+  userId 
+}: { 
+  onImportar: () => void; 
+  onEditGroup: (group: Group) => void; 
+  userId: string | null; 
+}) {
+  const [dbGroups, setDbGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState("Todos");
 
@@ -269,7 +274,7 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: any) {
       .order('created_at', { ascending: false });
 
     if (txs && !error) {
-      const groupsMap: Record<string, any> = {};
+      const groupsMap: Record<string, Group> = {};
 
       txs.forEach((t: any) => {
         const batchId = t.import_batch_id || `legacy_${t.banco}_${t.tipo_conta}_${t.created_at.split('T')[0]}`;
@@ -287,7 +292,8 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: any) {
             pend: 0,
             total: 0,
             status: "Pendente",
-            batchId: batchId
+            batchId: batchId,
+            period: ""
           };
         } else {
           if (t.data_transacao < groupsMap[batchId].minDate) {
@@ -304,7 +310,7 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: any) {
         else groupsMap[batchId].pend++;
       });
 
-      const processed = Object.values(groupsMap).map((g: any) => {
+      const processed = Object.values(groupsMap).map((g: Group) => {
         if (g.pend === 0 && g.conc > 0) g.status = "Conciliado";
         else if (g.conc > 0 && g.pend > 0) g.status = "Parcial";
 
@@ -342,7 +348,7 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: any) {
     loadData();
   }, []);
 
-  const handleDeleteGroup = async (group: any) => {
+  const handleDeleteGroup = async (group: Group) => {
     if (!window.confirm(`Tem certeza que deseja excluir este lote?`)) return;
 
     try {
@@ -424,10 +430,7 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: any) {
                   </Badge>
                 </td>
                 <td className="px-6 py-4 font-bold text-slate-500 text-xs">{group.date}</td>
-                <td className="px-6 py-4 flex items-center gap-2">
-                  <BankLogo bank={group.bank} />
-                  <span className="font-bold text-slate-800">{group.bank}</span>
-                </td>
+                <td className="px-6 py-4 font-bold text-slate-800">{group.bank}</td>
                 <td className="px-6 py-4 text-[10px] font-black text-emerald-600">
                   CONTA {group.tipo.replace('Conta ', '')}
                 </td>
@@ -471,7 +474,15 @@ function ConciliacaoView({ onImportar, onEditGroup, userId }: any) {
 // IMPORTAÇÃO VIEW
 // ========================================
 
-function ImportacaoView({ onSave, onBack, userId }: any) {
+function ImportacaoView({ 
+  onSave, 
+  onBack, 
+  userId 
+}: { 
+  onSave: () => void; 
+  onBack: () => void; 
+  userId: string | null; 
+}) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
 
