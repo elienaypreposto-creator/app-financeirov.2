@@ -389,22 +389,21 @@ function ConciliacaoView({
       <div className="flex items-end gap-4 text-sm">
         <div className="flex flex-col gap-2">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
-          <Select
+<Select
   value={filterStatus ?? "Todos"}
   onValueChange={(value) => setFilterStatus(value as string | null)}
 >
-  ...
+  <SelectTrigger className="w-[140px] bg-white border-slate-200 h-10 rounded-xl">
+    <SelectValue />
+  </SelectTrigger>
+
+  <SelectContent>
+    <SelectItem value="Todos">Todos</SelectItem>
+    <SelectItem value="Pendente">Pendentes</SelectItem>
+    <SelectItem value="Parcial">Parciais</SelectItem>
+    <SelectItem value="Conciliado">Conciliados</SelectItem>
+  </SelectContent>
 </Select>
-            <SelectTrigger className="w-[140px] bg-white border-slate-200 h-10 rounded-xl">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-white">
-              <SelectItem value="Todos">Todos</SelectItem>
-              <SelectItem value="Pendente">Pendentes</SelectItem>
-              <SelectItem value="Parcial">Parciais</SelectItem>
-              <SelectItem value="Conciliado">Conciliados</SelectItem>
-            </SelectContent>
-          </Select>
         </div>
       </div>
 
