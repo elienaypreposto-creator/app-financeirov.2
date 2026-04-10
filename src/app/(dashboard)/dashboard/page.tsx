@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Calendar, Info, TrendingUp, Building2, Wallet, FileText, Sparkles, Loader2, ChevronDown, MessageSquare, Send, Bot, UserIcon, ArrowRight, RefreshCcw, AlertTriangle, Download, X, Eye, Heart, Coffee, ShieldCheck, ShoppingBag } from "lucide-react";
+import { Calendar, Info, TrendingUp, Building2, Wallet, FileText, Sparkles, Loader as Loader2, ChevronDown, MessageSquare, Send, Bot, User as UserIcon, ArrowRight, RefreshCcw, TriangleAlert as AlertTriangle, Download, X, Eye, Heart, Coffee, ShieldCheck, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
