@@ -22,6 +22,7 @@ interface Transaction {
   cat?: string;
   ignored: boolean;
   import_batch_id: string;
+  sourceOrder: number;
 }
 
 interface Group {
@@ -72,6 +73,40 @@ function parseFlexibleDate(dateValue: any): string | null {
   }
 
   return null;
+}
+
+function parseDateToTimestamp(dateStr: string): number {
+  if (!dateStr) return 0;
+  const normalized = dateStr.split("T")[0].split(" ")[0];
+  if (normalized.includes("/")) {
+    const parts = normalized.split("/");
+    if (parts.length !== 3) return 0;
+    const [day, month, year] = parts;
+    const fullYear = year.length === 2 ? `20${year}` : year;
+    const iso = `${fullYear}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    const date = new Date(iso);
+    return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+  }
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function formatDateForPeriod(dateStr: string): string {
+  if (!dateStr) return "-";
+  const normalized = dateStr.split("T")[0].split(" ")[0];
+  if (normalized.includes("/")) {
+    const parts = normalized.split("/");
+    if (parts.length !== 3) return normalized;
+    const [day, month, year] = parts;
+    return `${day.padStart(2, "0")}/${month.padStart(2, "0")}/${year.slice(-2)}`;
+  }
+  const parsed = new Date(normalized);
+  if (Number.isNaN(parsed.getTime())) return normalized;
+  return parsed.toLocaleDateString("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "2-digit",
+  });
 }
 
 function smartParseXLSX(arrayBuffer: ArrayBuffer, bankName: string): Transaction[] {
@@ -135,14 +170,15 @@ function smartParseXLSX(arrayBuffer: ArrayBuffer, bankName: string): Transaction
         value,
         bank: bankName,
         ignored: false,
-        import_batch_id: batchId
+        import_batch_id: batchId,
+        sourceOrder: idx
       });
     });
 
     results.sort((a, b) => {
-      const dateA = new Date(a.date.split('/').reverse().join('-'));
-      const dateB = new Date(b.date.split('/').reverse().join('-'));
-      return dateA.getTime() - dateB.getTime();
+      const dateDelta = parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date);
+      if (dateDelta !== 0) return dateDelta;
+      return a.sourceOrder - b.sourceOrder;
     });
 
     return results;
@@ -157,6 +193,7 @@ function smartParseOFX(ofxText: string, bankName: string): Transaction[] {
   const batchId = generateImportBatchId();
   const trnRegex = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/g;
   let match;
+  let sourceOrder = 0;
 
   while ((match = trnRegex.exec(ofxText)) !== null) {
     const block = match[1];
@@ -181,10 +218,18 @@ function smartParseOFX(ofxText: string, bankName: string): Transaction[] {
         value: tVal,
         bank: bankName,
         ignored: false,
-        import_batch_id: batchId
+        import_batch_id: batchId,
+        sourceOrder
       });
+      sourceOrder += 1;
     }
   }
+
+  results.sort((a, b) => {
+    const dateDelta = parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date);
+    if (dateDelta !== 0) return dateDelta;
+    return a.sourceOrder - b.sourceOrder;
+  });
 
   return results;
 }
@@ -276,7 +321,7 @@ function ConciliacaoView({
       const groupsMap: Record<string, Group> = {};
 
       txs.forEach((t: any) => {
-        const batchId = t.import_batch_id || `legacy_${t.banco}_${t.tipo_conta}_${t.created_at.split('T')[0]}`;
+        const batchId = t.import_batch_id || `legacy_${t.created_at}_${t.id}`;
 
         if (!groupsMap[batchId]) {
           groupsMap[batchId] = {
@@ -295,10 +340,10 @@ function ConciliacaoView({
             period: ""
           };
         } else {
-          if (t.data_transacao < groupsMap[batchId].minDate) {
+          if (parseDateToTimestamp(t.data_transacao) < parseDateToTimestamp(groupsMap[batchId].minDate)) {
             groupsMap[batchId].minDate = t.data_transacao;
           }
-          if (t.data_transacao > groupsMap[batchId].maxDate) {
+          if (parseDateToTimestamp(t.data_transacao) > parseDateToTimestamp(groupsMap[batchId].maxDate)) {
             groupsMap[batchId].maxDate = t.data_transacao;
           }
         }
@@ -314,29 +359,15 @@ function ConciliacaoView({
         else if (g.conc > 0 && g.pend > 0) g.status = "Parcial";
 
         if (g.minDate && g.maxDate) {
-          const parseF = (s: string) => {
-            if (!s) return "";
-            s = s.split('T')[0].split(' ')[0];
-            if (s.includes('-')) {
-              const pts = s.split('-');
-              if (pts[0].length === 4) {
-                const year = pts[0].slice(-2);
-                return `${pts[2]}/${pts[1]}/${year}`;
-              }
-              const year = pts[2].slice(-2);
-              return `${pts[0]}/${pts[1]}/${year}`;
-            }
-            return s;
-          };
-          const pMin = parseF(g.minDate);
-          const pMax = parseF(g.maxDate);
+          const pMin = formatDateForPeriod(g.minDate);
+          const pMax = formatDateForPeriod(g.maxDate);
           g.period = pMin === pMax ? pMin : `${pMin} a ${pMax}`;
         } else {
           g.period = "-";
         }
 
         return g;
-      });
+      }).sort((a, b) => parseDateToTimestamp(b.maxDate) - parseDateToTimestamp(a.maxDate));
 
       setDbGroups(processed);
     }
@@ -493,6 +524,29 @@ function ImportacaoView({
   const [selectedBank, setSelectedBank] = useState("Santander");
   const [selectedConta, setSelectedConta] = useState("PJ");
   const [isSaving, setIsSaving] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [newCategory, setNewCategory] = useState("");
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editingCategoryValue, setEditingCategoryValue] = useState("");
+
+  useEffect(() => {
+    const raw = localStorage.getItem("@fincontrol_categories");
+    if (raw) {
+      try {
+        setCategories(JSON.parse(raw));
+        return;
+      } catch {
+        // fallback for invalid local data
+      }
+    }
+    setCategories(["Vendas", "Serviços Prestados", "Rendimentos", "Moradia", "Transporte"]);
+  }, []);
+
+  useEffect(() => {
+    if (categories.length > 0) {
+      localStorage.setItem("@fincontrol_categories", JSON.stringify(categories));
+    }
+  }, [categories]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -554,6 +608,44 @@ function ImportacaoView({
     }
   };
 
+  const addCategory = () => {
+    const normalized = newCategory.trim();
+    if (!normalized) return;
+    if (categories.some((c) => c.toLowerCase() === normalized.toLowerCase())) {
+      alert("Essa categoria já existe.");
+      return;
+    }
+    setCategories((prev) => [...prev, normalized]);
+    setNewCategory("");
+  };
+
+  const deleteCategory = (name: string) => {
+    if (!window.confirm(`Excluir categoria "${name}"?`)) return;
+    setCategories((prev) => prev.filter((c) => c !== name));
+  };
+
+  const startEditCategory = (name: string) => {
+    setEditingCategory(name);
+    setEditingCategoryValue(name);
+  };
+
+  const saveEditCategory = () => {
+    if (!editingCategory) return;
+    const normalized = editingCategoryValue.trim();
+    if (!normalized) return;
+    if (
+      categories.some(
+        (c) => c.toLowerCase() === normalized.toLowerCase() && c !== editingCategory
+      )
+    ) {
+      alert("Já existe uma categoria com este nome.");
+      return;
+    }
+    setCategories((prev) => prev.map((c) => (c === editingCategory ? normalized : c)));
+    setEditingCategory(null);
+    setEditingCategoryValue("");
+  };
+
   return (
     <div className="flex flex-col gap-6 max-w-6xl w-full mx-auto pb-20">
       <div className="flex items-center gap-4">
@@ -575,6 +667,9 @@ function ImportacaoView({
             <div>
               <h2 className="font-bold text-emerald-600 text-xl">Upload</h2>
               <p className="text-sm text-slate-500">Escolha .xlsx ou .ofx</p>
+              <p className="text-xs text-slate-400 mt-1">
+                XLSX deve conter colunas: Data, Descrição, Valor
+              </p>
             </div>
           </div>
           <input
@@ -594,6 +689,55 @@ function ImportacaoView({
         </CardContent>
       </Card>
 
+      <Card className="bg-white border-slate-200 shadow-xl rounded-2xl">
+        <CardContent className="pt-6 pb-6">
+          <div className="flex flex-col gap-4">
+            <h3 className="text-sm font-black text-slate-700 uppercase tracking-wider">Categorias</h3>
+            <div className="flex gap-2">
+              <input
+                value={newCategory}
+                onChange={(e) => setNewCategory(e.target.value)}
+                placeholder="Nova categoria"
+                className="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm"
+              />
+              <Button onClick={addCategory} variant="outline" className="rounded-xl">
+                Adicionar
+              </Button>
+            </div>
+            <div className="space-y-2">
+              {categories.map((cat) => (
+                <div key={cat} className="flex items-center justify-between border border-slate-100 rounded-xl px-3 py-2">
+                  {editingCategory === cat ? (
+                    <input
+                      value={editingCategoryValue}
+                      onChange={(e) => setEditingCategoryValue(e.target.value)}
+                      className="flex-1 border border-slate-200 rounded-lg px-2 py-1 text-sm"
+                    />
+                  ) : (
+                    <span className="font-semibold text-slate-700">{cat}</span>
+                  )}
+                  <div className="flex items-center gap-2">
+                    {editingCategory === cat ? (
+                      <Button variant="ghost" size="sm" onClick={saveEditCategory}>Salvar</Button>
+                    ) : (
+                      <Button variant="ghost" size="sm" onClick={() => startEditCategory(cat)}>Editar</Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-rose-600 hover:text-rose-700"
+                      onClick={() => deleteCategory(cat)}
+                    >
+                      Excluir
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {transactions.length > 0 && (
         <>
           <h2 className="text-lg font-bold text-emerald-600 flex items-center gap-2">
@@ -601,12 +745,12 @@ function ImportacaoView({
           </h2>
 
           <div className="border border-slate-200 rounded-2xl overflow-x-auto bg-white shadow-xl">
-            <table className="w-full text-sm text-left text-slate-700">
+            <table className="w-full min-w-[980px] text-sm text-left text-slate-700 table-fixed">
               <thead className="text-[10px] text-slate-400 font-black bg-slate-50 border-b">
                 <tr>
                   <th className="px-4 py-4 w-[100px]">Data</th>
-                  <th className="px-4 py-4 flex-grow min-w-[300px]">Descrição</th>
-                  <th className="px-4 py-4 min-w-[120px]">Valor</th>
+                  <th className="px-4 py-4 w-[62%]">Histórico / Descrição</th>
+                  <th className="px-4 py-4 w-[180px]">Valor</th>
                   <th className="px-4 py-4 min-w-[80px] text-center">Deletar</th>
                 </tr>
               </thead>
@@ -614,7 +758,7 @@ function ImportacaoView({
                 {transactions.map((t) => (
                   <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                     <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-500">{t.date}</td>
-                    <td className="px-4 py-3 font-semibold text-slate-800 truncate" title={t.desc}>
+                    <td className="px-4 py-3 font-semibold text-slate-800 whitespace-normal break-words" title={t.desc}>
                       {t.desc}
                     </td>
                     <td className={`px-4 py-3 font-bold whitespace-nowrap ${t.value > 0 ? "text-emerald-600" : "text-rose-600"}`}>
