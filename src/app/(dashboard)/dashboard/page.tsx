@@ -11,8 +11,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { createClient } from "@/lib/supabase/client";
 
 // Export Libraries
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 export default function DashboardPage() {
@@ -201,18 +199,24 @@ export default function DashboardPage() {
       alert("Não há dados conciliados para exportar.");
       return;
     }
-    const doc = new jsPDF();
-    const period = selectedMonths.map(m => monthNames[m]).join(", ") + " " + selectedYears.join("/");
-    doc.setFontSize(18);
-    doc.text("Extrato Consolidado - FinControl", 14, 20);
-    doc.setFontSize(10);
-    doc.text(`Período: ${period}`, 14, 28);
-    autoTable(doc, {
-      startY: 35,
-      head: [["Data", "Desc", "Cat", "Conta", "Valor", "Status"]],
-      body: conciliatedData.map(t => [new Date(t.data_transacao).toLocaleDateString(), t.descricao, t.categoria, t.tipo_conta, `R$ ${t.valor.toLocaleString("pt-BR")}`, t.status]),
-    });
-    doc.save(`FinControl_${new Date().getTime()}.pdf`);
+    const csvContent = [
+      ["Data", "Descrição", "Categoria", "Conta", "Valor", "Status"],
+      ...conciliatedData.map(t => [
+        new Date(t.data_transacao).toLocaleDateString(),
+        t.descricao,
+        t.categoria,
+        t.tipo_conta,
+        `R$ ${t.valor.toLocaleString("pt-BR")}`,
+        t.status
+      ])
+    ].map(row => row.join(",")).join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `FinControl_${new Date().getTime()}.csv`;
+    a.click();
     setIsExportModalOpen(false);
   };
 
@@ -471,14 +475,14 @@ export default function DashboardPage() {
              <div className="bg-slate-50/50 p-8 rounded-[2.5rem] border border-slate-100 space-y-8 shadow-sm">
                <div className="flex justify-between items-center px-2"><label className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Resumo do Arquivo</label><div className="px-4 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-widest shadow-sm">{conciliatedData.length} Conciliados</div></div>
                
-               <div className="grid grid-cols-2 gap-6">
-                  <button onClick={handleExportPDF} className="bg-white border border-slate-100 hover:border-rose-500 p-8 rounded-[2rem] flex flex-col items-center justify-center gap-4 transition-all hover:shadow-2xl hover:-translate-y-1 shadow-sm group">
-                    <FileText className="w-10 h-10 text-rose-500 transition-transform group-hover:scale-110" /> 
-                    <span className="text-xs font-black text-slate-700 uppercase tracking-widest">PDF</span>
+               <div className="grid grid-cols-1 gap-6">
+                  <button onClick={handleExportPDF} className="bg-white border border-slate-100 hover:border-emerald-500 p-8 rounded-[2rem] flex flex-col items-center justify-center gap-4 transition-all hover:shadow-2xl hover:-translate-y-1 shadow-sm group">
+                    <Download className="w-10 h-10 text-emerald-500 transition-transform group-hover:scale-110" />
+                    <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Baixar CSV</span>
                   </button>
                   <button onClick={handleExportXLSX} className="bg-white border border-slate-100 hover:border-emerald-500 p-8 rounded-[2rem] flex flex-col items-center justify-center gap-4 transition-all hover:shadow-2xl hover:-translate-y-1 shadow-sm group">
-                    <TrendingUp className="w-10 h-10 text-emerald-500 transition-transform group-hover:scale-110" /> 
-                    <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Excel</span>
+                    <TrendingUp className="w-10 h-10 text-emerald-500 transition-transform group-hover:scale-110" />
+                    <span className="text-xs font-black text-slate-700 uppercase tracking-widest">Baixar Excel</span>
                   </button>
                </div>
              </div>
