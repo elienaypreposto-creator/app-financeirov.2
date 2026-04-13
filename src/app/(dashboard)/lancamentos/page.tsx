@@ -39,7 +39,7 @@ export default function LancamentosPage() {
   return (
     <ConciliacaoView
       onImportar={() => setView("importacao")}
-      onEditGroup={(group: Group) => { setSelectedGroup(group); setView("importacao"); }}
+      onEditGroup={(group: any) => { setSelectedGroup(group); setView("importacao"); }}
       userId={userId}
     />
   );
@@ -55,10 +55,10 @@ function ConciliacaoView({
   userId 
 }: { 
   onImportar: () => void; 
-  onEditGroup: (group: Group) => void; 
+  onEditGroup: (group: any) => void; 
   userId: string | null; 
 }) {
-  const [dbGroups, setDbGroups] = useState<Group[]>([]);
+  const [dbGroups, setDbGroups] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [exportGroup, setExportGroup] = useState<any | null>(null);
@@ -70,6 +70,26 @@ function ConciliacaoView({
   const [selectedMonths, setSelectedMonths] = useState<number[]>([new Date().getMonth()]);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+  const formatDateForPeriod = (dateStr: string) => {
+    if (!dateStr) return "";
+    const parts = dateStr.split(/[\/\-]/);
+    if (parts.length === 3) {
+      if (parts[0].length === 4) return `${parts[2]}/${parts[1]}/${parts[0]}`; // YYYY-MM-DD -> DD/MM/YYYY
+      return `${parts[0]}/${parts[1]}/${parts[2]}`;
+    }
+    return dateStr;
+  };
+
+  const parseDateToTimestamp = (dateStr: string) => {
+    if (!dateStr || typeof dateStr !== 'string') return 0;
+    const parts = dateStr.split(/[\/\-]/);
+    if (parts.length === 3) {
+      if (parts[0].length === 4) return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])).getTime();
+      return new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0])).getTime();
+    }
+    return 0;
+  };
 
   const loadData = async () => {
     setIsLoading(true);
@@ -119,7 +139,7 @@ function ConciliacaoView({
           else groupsMap[key].pend++;
         });
 
-      const processed = Object.values(groupsMap).map((g: Group) => {
+      const processed = Object.values(groupsMap).map((g: any) => {
         if (g.pend === 0 && g.conc > 0) g.status = "Conciliado";
         else if (g.conc > 0 && g.pend > 0) g.status = "Parcial";
 
@@ -299,7 +319,7 @@ function ConciliacaoView({
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
           <Select
             value={filterStatus || "Todos"}
-            onValueChange={(value) => setFilterStatus(value as string | null)}
+            onValueChange={(value) => setFilterStatus(value || "Todos")}
           >
             <SelectTrigger className="w-[140px] bg-white border-slate-200 h-10 rounded-xl">
               <SelectValue />
@@ -624,6 +644,29 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
   const [newCatType, setNewCatType] = useState("saida");
   const [isSaving, setIsSaving] = useState(false);
   const [fullCategories, setFullCategories] = useState<any[]>([]);
+
+  const handleFileUploadClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+  };
+
+  const downloadTemplateXLSX = () => {
+    const ws = XLSX.utils.json_to_sheet([{ Data: "01/01/2026", Descricao: "Exemplo", Valor: 100.5 }]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Template");
+    XLSX.writeFile(wb, "template_importacao.xlsx");
+  };
+
+  const handleSaveNewCategory = () => {
+    if (!newCatName.trim()) return;
+    setNewCategoryModalOpen(false);
+    setNewCatName("");
+  };
   const [registeredAccounts, setRegisteredAccounts] = useState<any[]>([]);
   const [loadingAccounts, setLoadingAccounts] = useState(true);
 
@@ -756,7 +799,11 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
     }
   }, [initialGroup, userId]);
 
+  const [newCategory, setNewCategory] = useState("");
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
+  const [editingCategoryValue, setEditingCategoryValue] = useState("");
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
   const [selectedBank, setSelectedBank] = useState("Santander");
   const [selectedConta, setSelectedConta] = useState("PJ");
   const [catSearch, setCatSearch] = useState("");
@@ -885,6 +932,14 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
       return;
     }
     setTransactions(prev => prev.map(t => t.id === id ? { ...t, cat: val } : t));
+  };
+
+  const clearCategory = (id: string) => {
+    setTransactions(prev => prev.map(t => t.id === id ? { ...t, cat: undefined } : t));
+  };
+
+  const toggleIgnore = (id: string) => {
+    setTransactions(prev => prev.map(t => t.id === id ? { ...t, ignored: !t.ignored } : t));
   };
 
   const submitToDatabase = async () => {
@@ -1027,7 +1082,7 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
       </Dialog>
 
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" onClick={handleIntentBack} className="text-slate-400 hover:text-emerald-600 bg-white border border-slate-200 hover:border-emerald-500 shadow-sm rounded-xl">
+        <Button variant="ghost" size="icon" onClick={onBack} className="text-slate-400 hover:text-emerald-600 bg-white border border-slate-200 hover:border-emerald-500 shadow-sm rounded-xl">
           <ArrowLeft className="w-5 h-5" />
         </Button>
         <div>
@@ -1079,9 +1134,9 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
                 Adicionar
               </Button>
             </div>
-          )}
+          </div>
 
-          <div className="flex gap-4 items-center">
+          <div className="flex gap-4 items-center mt-6">
             <div className="flex flex-col gap-1.5">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Banco Origem</span>
               <Select value={selectedBank} onValueChange={(v: string | null) => {
@@ -1115,12 +1170,12 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
 
       <div className="mt-2">
         {transactions.length > 0 && (
-          <h2 className="text-lg font-black text-slate-800 flex items-center gap-2 mb-4 tracking-tighter">
-            <Badge className="bg-emerald-500 text-white font-black rounded-lg h-6 px-2">{transactions.length}</Badge> Transações Lidas pela IA
-          </h2>
+          <>
+            <h2 className="text-lg font-black text-slate-800 flex items-center gap-2 mb-4 tracking-tighter">
+              <Badge className="bg-emerald-500 text-white font-black rounded-lg h-6 px-2">{transactions.length}</Badge> Transações Lidas pela IA
+            </h2>
 
-        {transactions.length > 0 && (
-          <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white flex flex-col shadow-xl">
+            <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white flex flex-col shadow-xl">
             <table className="w-full text-sm text-left text-slate-700">
               <thead className="bg-[#FAFBFD] border-b border-slate-100">
                 <tr className="text-left py-4">
@@ -1218,6 +1273,7 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
           </div>
         </>
       )}
+      </div>
     </div>
   );
 }
