@@ -166,27 +166,6 @@ function ConciliacaoView({
     }
 
     loadData();
-  }, []);
-
-  const handleDeleteGroup = async (group: Group) => {
-    if (!window.confirm(`Tem certeza que deseja excluir este lote?`)) return;
-
-    try {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from('transactions')
-        .delete()
-        .eq('import_batch_id', group.batchId);
-
-      if (error) {
-        alert('Erro ao excluir: ' + error.message);
-      } else {
-        setDbGroups(prev => prev.filter(g => g.id !== group.id));
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Erro ao excluir as transações.');
-    }
   };
 
   const handleExport = async (group: any, format: 'PDF' | 'XLSX') => {
@@ -928,7 +907,7 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
         status: (!!t.cat || t.ignored) ? 'Conciliado' : 'Pendente',
         // batch_id removido para evitar erro se a coluna não existir
         created_at: t.temp_timestamp || new Date().toISOString()
-      };
+      }));
 
       const { error } = await supabase.from('transactions').insert(payload);
       if (error) throw error;
