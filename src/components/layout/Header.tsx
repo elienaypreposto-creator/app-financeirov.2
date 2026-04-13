@@ -121,16 +121,16 @@ export function Header() {
           </button>
         } />
         <DialogContent className="sm:max-w-md bg-white border-slate-200 text-slate-800 p-0 overflow-hidden shadow-2xl rounded-2xl">
-          <DialogHeader className="p-6 pb-2">
-            <DialogTitle className="text-xl font-bold flex items-center gap-2 text-slate-800">
-              <Settings className="w-5 h-5 text-emerald-600" /> Configuração do Perfil
+          <DialogHeader className="p-6 pb-2 border-b border-slate-50 bg-slate-50/50">
+            <DialogTitle className="text-xl font-black text-slate-800 flex items-center gap-2">
+              <Settings className="w-5 h-5 text-emerald-500" /> Configuração do Perfil
             </DialogTitle>
           </DialogHeader>
           
-          <div className="px-6 pb-6 space-y-5">
-             <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 transition-colors">
+          <div className="px-6 py-6 space-y-5">
+             <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100 transition-colors">
                <div 
-                 className="relative group w-16 h-16 rounded-full border-2 border-slate-200 bg-white flex items-center justify-center overflow-hidden cursor-pointer shadow-md"
+                 className="relative group w-16 h-16 rounded-full border-2 border-white bg-slate-200 flex items-center justify-center overflow-hidden cursor-pointer shadow-md"
                  onClick={() => fileInputRef.current?.click()}
                  title="Nova Imagem"
                >
@@ -139,37 +139,37 @@ export function Header() {
                  ) : (
                    <Camera className="w-6 h-6 text-slate-400" />
                  )}
-                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all">
                     <Upload className="w-4 h-4 text-white" />
                  </div>
                </div>
                <div>
-                  <h3 className="text-sm font-bold text-slate-800">Foto de Identificação</h3>
-                  <p className="text-xs text-slate-500 max-w-[200px]">Formatos PNG ou JPG. Recomendado menos de 2MB. A imagem será sincronizada com sua conta.</p>
+                  <h3 className="text-sm font-black text-slate-800 tracking-tight">Foto de Identificação</h3>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest max-w-[200px] mt-0.5">Formatos PNG ou JPG. Recomendado menos de 2MB.</p>
                </div>
                <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleFileChange} />
              </div>
 
              <div className="space-y-4">
-               <div className="space-y-1.5 focus-within:text-emerald-600 transition-colors">
-                 <Label htmlFor="edit-name" className="text-xs font-bold uppercase tracking-wider text-slate-500 pl-1">Nome Completo</Label>
-                 <Input id="edit-name" value={name} onChange={e=>setName(e.target.value)} disabled={isLoading} className="bg-white border-slate-200 h-11 px-4 font-semibold text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 rounded-xl" />
+               <div className="space-y-1.5 focus-within:text-emerald-500 transition-colors">
+                 <Label htmlFor="edit-name" className="text-[10px] font-black uppercase tracking-widest text-inherit pl-1">Nome Completo</Label>
+                 <Input id="edit-name" value={name} onChange={e=>setName(e.target.value)} disabled={isLoading} className="bg-white border-slate-200 h-11 px-4 font-bold text-slate-700 rounded-xl focus:border-emerald-500 focus:ring-emerald-500 disabled:opacity-50 transition-all" />
                </div>
                
                <div className="grid grid-cols-2 gap-4">
-                 <div className="space-y-1.5 focus-within:text-emerald-600 transition-colors">
-                    <Label htmlFor="edit-cpf" className="text-xs font-bold uppercase tracking-wider text-slate-500 pl-1">CPF Oficial</Label>
-                    <Input id="edit-cpf" value={cpf} onChange={e=>setCpf(e.target.value)} disabled={isLoading} className="bg-white border-slate-200 h-11 px-4 font-mono text-sm text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 rounded-xl" />
+                 <div className="space-y-1.5 focus-within:text-emerald-500 transition-colors">
+                    <Label htmlFor="edit-cpf" className="text-[10px] font-black uppercase tracking-widest text-inherit pl-1">CPF Oficial</Label>
+                    <Input id="edit-cpf" value={cpf} onChange={e=>setCpf(e.target.value)} disabled={isLoading} className="bg-white border-slate-200 h-11 px-4 font-bold text-slate-700 rounded-xl focus:border-emerald-500 focus:ring-emerald-500 disabled:opacity-50 transition-all" />
                  </div>
-                 <div className="space-y-1.5 focus-within:text-emerald-600 transition-colors">
-                    <Label htmlFor="edit-cnpj" className="text-xs font-bold uppercase tracking-wider text-slate-500 pl-1">CNPJ Atrelado</Label>
-                    <Input id="edit-cnpj" value={cnpj} onChange={e=>setCnpj(e.target.value)} disabled={isLoading} placeholder="Opcional" className="bg-white border-slate-200 h-11 px-4 font-mono text-sm text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50 rounded-xl" />
+                 <div className="space-y-1.5 focus-within:text-emerald-500 transition-colors">
+                    <Label htmlFor="edit-cnpj" className="text-[10px] font-black uppercase tracking-widest text-inherit pl-1">CNPJ Atrelado</Label>
+                    <Input id="edit-cnpj" value={cnpj} onChange={e=>setCnpj(e.target.value)} disabled={isLoading} placeholder="Opcional" className="bg-white border-slate-200 h-11 px-4 font-bold text-slate-700 rounded-xl focus:border-emerald-500 focus:ring-emerald-500 disabled:opacity-50 transition-all" />
                  </div>
                </div>
 
-               <div className="space-y-1.5 focus-within:text-emerald-600 transition-colors">
-                 <Label htmlFor="edit-regime" className="text-xs font-bold uppercase tracking-wider text-slate-500 pl-1">Regime Tributário</Label>
-                 <select id="edit-regime" value={regime} onChange={e=>setRegime(e.target.value)} disabled={isLoading} className="w-full bg-white border border-slate-200 rounded-xl h-11 px-4 font-semibold text-sm text-slate-800 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none disabled:opacity-50 transition-all">
+               <div className="space-y-1.5 focus-within:text-emerald-500 transition-colors">
+                 <Label htmlFor="edit-regime" className="text-[10px] font-black uppercase tracking-widest text-inherit pl-1">Regime Tributário</Label>
+                 <select id="edit-regime" value={regime} onChange={e=>setRegime(e.target.value)} disabled={isLoading} className="w-full bg-white border border-slate-200 rounded-xl h-11 px-4 font-bold text-sm text-slate-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none disabled:opacity-50 transition-all">
                    <option value="Pessoa Física Apenas (Sem Empresa)">Pessoa Física Apenas (Sem Empresa)</option>
                    <option value="MEI (Microempreendedor Individual)">MEI (Microempreendedor Individual)</option>
                    <option value="ME (Simples Nacional)">ME (Simples Nacional)</option>
@@ -177,12 +177,12 @@ export function Header() {
                </div>
 
                <div className="pt-2">
-                 <Button type="button" onClick={saveProfile} disabled={isSaving || isLoading} className="w-full h-12 font-bold bg-emerald-500 hover:bg-emerald-600 text-white text-sm uppercase tracking-widest transition-all active:scale-[0.98] rounded-xl shadow-md">
+                 <Button type="button" onClick={saveProfile} disabled={isSaving || isLoading} className="w-full h-12 font-black bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs uppercase tracking-[0.2em] shadow-lg shadow-emerald-500/20 transition-all active:scale-[0.98]">
                    {isSaving ? (
                       <span className="flex items-center gap-2"><Loader2 className="w-5 h-5 animate-spin"/> Atualizando...</span>
                    ) : showSuccess ? (
                       <span className="flex items-center gap-2 px-6"><CheckCircle2 className="w-5 h-5"/> Dados Salvos!</span>
-                   ) : "Atualizar Dados e Foto"}
+                   ) : "Atualizar Cadastro"}
                  </Button>
                </div>
              </div>
