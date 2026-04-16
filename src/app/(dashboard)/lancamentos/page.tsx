@@ -455,7 +455,7 @@ function ConciliacaoView({
         {/* STATUS */}
         <div className="flex flex-col gap-1.5">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status</label>
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <Select value={filterStatus} onValueChange={(val) => setFilterStatus(val || "Todos")}>
             <SelectTrigger className="w-[140px] bg-slate-50 border-slate-200 h-10 rounded-xl font-semibold text-slate-700 text-sm focus:ring-emerald-500">
               <SelectValue />
             </SelectTrigger>
@@ -471,7 +471,7 @@ function ConciliacaoView({
         {/* TIPO DE CONTA */}
         <div className="flex flex-col gap-1.5">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo de Conta</label>
-          <Select value={filterConta} onValueChange={setFilterConta}>
+          <Select value={filterConta} onValueChange={(val) => setFilterConta(val || "Todas")}>
             <SelectTrigger className="w-[140px] bg-slate-50 border-slate-200 h-10 rounded-xl font-semibold text-slate-700 text-sm focus:ring-emerald-500">
               <SelectValue />
             </SelectTrigger>
@@ -526,7 +526,7 @@ function ConciliacaoView({
         {/* ANO */}
         <div className="flex flex-col gap-1.5">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Ano</label>
-          <Select value={selectedYear} onValueChange={setSelectedYear}>
+          <Select value={selectedYear} onValueChange={(val) => setSelectedYear(val || String(new Date().getFullYear()))}>
             <SelectTrigger className="w-[140px] bg-slate-50 border-slate-200 h-10 rounded-xl font-semibold text-slate-700 text-sm focus:ring-emerald-500">
               <SelectValue />
             </SelectTrigger>
@@ -1042,8 +1042,9 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
             <div className="flex flex-col gap-1.5">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Banco Origem</span>
               <Select value={selectedBank} onValueChange={(v) => {
-                setSelectedBank(v);
-                const acc = registeredAccounts.find((a: any) => a.name === v);
+                const val = v || "";
+                setSelectedBank(val);
+                const acc = registeredAccounts.find((a: any) => a.name === val);
                 if (acc) setSelectedConta(acc.type || "PJ");
               }}>
                 <SelectTrigger className="w-[170px] bg-white border-slate-200 text-slate-700 h-10 font-semibold rounded-xl">
