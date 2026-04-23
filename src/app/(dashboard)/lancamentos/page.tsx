@@ -726,6 +726,7 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
   const [catSearch, setCatSearch] = useState("");
   const [categorias, setCategorias] = useState({ entradas: [] as string[], saidas: [] as string[] });
   const [hasUnsavedDialogOpen, setHasUnsavedDialogOpen] = useState(false);
+  const [descriptionHistory, setDescriptionHistory] = useState<Record<string, { cat: string, natureza: string }>>({});
 
   // Load bank accounts
   useEffect(() => {
@@ -853,10 +854,38 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
 
         const { data: authData } = await supabase.auth.getUser();
         if (authData?.user) {
+          // Fetch existing for duplicate check
           const { data: existing } = await supabase.from('transactions')
             .select('data_transacao, valor, descricao')
             .eq('user_id', authData.user.id)
             .eq('banco', selectedBank);
+
+          // Fetch History for suggestions
+          const uniqueDescs = Array.from(new Set(parsed.map(t => t.desc)));
+          const { data: history } = await supabase.from('transactions')
+            .select('descricao, categoria, natureza')
+            .eq('user_id', authData.user.id)
+            .in('descricao', uniqueDescs)
+            .not('categoria', 'is', null)
+            .order('created_at', { ascending: false });
+
+          const historyMap: Record<string, { cat: string, natureza: string }> = {};
+          if (history) {
+            history.forEach(h => {
+              if (!historyMap[h.descricao]) {
+                historyMap[h.descricao] = { cat: h.categoria, natureza: h.natureza };
+              }
+            });
+            setDescriptionHistory(prev => ({ ...prev, ...historyMap }));
+          }
+
+          // Apply Suggestions
+          parsed = parsed.map(t => {
+            if (historyMap[t.desc]) {
+              return { ...t, cat: historyMap[t.desc].cat, natureza: historyMap[t.desc].natureza as any };
+            }
+            return t;
+          });
 
           if (existing && existing.length > 0) {
             let duplicateCount = 0;
@@ -894,10 +923,44 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const handleCategoryChange = (val: string | null, id: string) => {
+  const handleCategoryChange = async (val: string | null, id: string) => {
     if (!val) return;
     if (val === "MANAGE_CATEGORIES") { setManageCatsOpen(true); return; }
+    
+    const targetTx = transactions.find(t => t.id === id);
+    if (!targetTx) return;
+
+    const previousHistory = descriptionHistory[targetTx.desc];
+    
+    if (previousHistory && previousHistory.cat !== val) {
+       const confirmMsg = `Esta descrição já foi classificada anteriormente como "${previousHistory.cat}".\n\nDeseja atualizar para "${val}"?`;
+       if (!window.confirm(confirmMsg)) return;
+    }
+
     setTransactions(prev => prev.map(t => t.id === id ? { ...t, cat: val } : t));
+
+    // Ask for retroactive update
+    const hasOthers = transactions.some(t => t.desc === targetTx.desc && t.id !== id);
+    const confirmRetro = window.confirm(`Deseja aplicar a categoria "${val}" a todos os outros lançamentos (inclusive antigos no banco de dados) que possuem a mesma descrição "${targetTx.desc}"?`);
+    
+    if (confirmRetro) {
+      // Update current list
+      setTransactions(prev => prev.map(t => t.desc === targetTx.desc ? { ...t, cat: val } : t));
+      
+      // Update Database
+      const { data: authData } = await supabase.auth.getUser();
+      if (authData?.user) {
+        const { error } = await supabase.from('transactions')
+          .update({ categoria: val, status: 'Conciliado' })
+          .eq('user_id', authData.user.id)
+          .eq('descricao', targetTx.desc);
+        
+        if (error) console.error("Erro ao atualizar histórico:", error.message);
+        else {
+          setDescriptionHistory(prev => ({ ...prev, [targetTx.desc]: { cat: val, natureza: targetTx.natureza || 'Despesa' } }));
+        }
+      }
+    }
   };
 
   const clearCategory = (id: string) => {
