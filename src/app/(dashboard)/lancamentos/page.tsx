@@ -28,7 +28,6 @@ export type Transaction = {
   cat?: string;
   natureza?: 'Receita' | 'Despesa' | 'Transferência';
   ignored: boolean;
-  batch_id?: string;
   temp_timestamp?: string;
 };
 
@@ -45,7 +44,6 @@ type Group = {
   pend: number;
   total: number;
   status: string;
-  batch_id?: string;
   fullCreatedAt?: string;
 };
 
@@ -147,10 +145,13 @@ function smartParseCSV(csvText: string, bankName: string): Transaction[] {
   return results;
 }
 
-function smartParseOFX(ofxText: string, bankName: string): Transaction[] {
+function smartParseOFX(ofxText: string, bankName: string): { transactions: Transaction[], acctId: string | null } {
   const results: Transaction[] = [];
   const trnRegex = /<STMTTRN>([\s\S]*?)<\/STMTTRN>/g;
   let match;
+
+  const acctIdMatch = ofxText.match(/<ACCTID>([^<]+)/);
+  const acctId = acctIdMatch ? acctIdMatch[1].trim() : null;
 
   while ((match = trnRegex.exec(ofxText)) !== null) {
     const block = match[1];
@@ -175,10 +176,12 @@ function smartParseOFX(ofxText: string, bankName: string): Transaction[] {
     }
   }
 
-  return results.sort((a, b) => {
+  const sorted = results.sort((a, b) => {
     const p = (d: string) => { const [day, month, year] = d.split('/').map(Number); return new Date(year, month - 1, day).getTime(); };
     return p(a.date) - p(b.date);
   });
+
+  return { transactions: sorted, acctId };
 }
 
 function smartParseXLSX(data: any[], bankName: string): Transaction[] {
@@ -297,14 +300,14 @@ function ConciliacaoView({
       const groupsMap: Record<string, any> = {};
 
       txs.forEach((t: any) => {
-        const key = t.batch_id || t.created_at;
+        const key = t.created_at;
         if (!groupsMap[key]) {
           groupsMap[key] = {
             id: key, date: new Date(t.created_at).toLocaleDateString('pt-BR'),
             bank: t.banco, tipo: `Conta ${t.tipo_conta}`,
             minDate: t.data_transacao, maxDate: t.data_transacao,
             conc: 0, ign: 0, pend: 0, total: 0, status: "Pendente",
-            batch_id: t.batch_id, fullCreatedAt: t.created_at
+            fullCreatedAt: t.created_at
           };
         } else {
           if (!groupsMap[key].minDate || t.data_transacao < groupsMap[key].minDate) groupsMap[key].minDate = t.data_transacao;
@@ -337,9 +340,7 @@ function ConciliacaoView({
     try {
       const supabase = createClient();
       let query = supabase.from('transactions').delete();
-      if (group.batch_id) {
-        query = query.eq('batch_id', group.batch_id);
-      } else if (group.fullCreatedAt) {
+      if (group.fullCreatedAt) {
         query = query.eq('created_at', group.fullCreatedAt);
       } else {
         const dateKey = group.id.split('|').pop();
@@ -357,8 +358,7 @@ function ConciliacaoView({
     const supabase = createClient();
     let query = supabase.from('transactions').select('*').eq('user_id', userId).eq('banco', group.bank).eq('ignorado', false);
 
-    if (group.batch_id) query = query.eq('batch_id', group.batch_id);
-    else if (group.fullCreatedAt) query = query.eq('created_at', group.fullCreatedAt);
+    if (group.fullCreatedAt) query = query.eq('created_at', group.fullCreatedAt);
     else {
       const dateKey = group.id.split('|').pop();
       query = query.like('created_at', `${dateKey}%`);
@@ -811,7 +811,24 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
 
       if (file.name.toLowerCase().endsWith('.ofx')) {
         const text = await file.text();
-        parsed = smartParseOFX(text, selectedBank);
+        const { transactions: parsedOFX, acctId } = smartParseOFX(text, selectedBank);
+        
+        // Validation: Account type check
+        if (acctId) {
+          const matchingAccount = registeredAccounts.find(a => 
+            a.account.replace(/[^0-9]/g, '').includes(acctId.replace(/[^0-9]/g, '')) ||
+            acctId.replace(/[^0-9]/g, '').includes(a.account.replace(/[^0-9]/g, ''))
+          );
+          
+          if (matchingAccount && matchingAccount.type !== selectedConta.toLowerCase()) {
+            const confirmImport = window.confirm(`⚠️ AVISO: Este arquivo parece pertencer a uma conta ${matchingAccount.type.toUpperCase()}, mas você está no modo ${selectedConta.toUpperCase()}.\n\nDeseja continuar mesmo assim?`);
+            if (!confirmImport) {
+              if (fileInputRef.current) fileInputRef.current.value = '';
+              return;
+            }
+          }
+        }
+        parsed = parsedOFX;
       } else if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
         const XLSXLib = await import('xlsx');
         const buffer = await file.arrayBuffer();
@@ -895,9 +912,7 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
       // FIX: If we are editing an existing group, delete old records first to avoid duplication
       if (initialGroup) {
         let delQuery = supabase.from('transactions').delete().eq('user_id', authData.user.id);
-        if (initialGroup.batch_id) {
-          delQuery = delQuery.eq('batch_id', initialGroup.batch_id);
-        } else if (initialGroup.fullCreatedAt) {
+        if (initialGroup.fullCreatedAt) {
           delQuery = delQuery.eq('created_at', initialGroup.fullCreatedAt);
         } else {
           const dateKey = initialGroup.id.split('|').pop();
@@ -906,7 +921,6 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
         await delQuery;
       }
 
-      const finalBatchId = initialGroup?.batch_id || Math.random().toString(36).substring(2, 15);
       const finalCreatedAt = initialGroup?.fullCreatedAt || new Date().toISOString();
 
       const payload = transactions.map(t => ({
@@ -921,8 +935,7 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
         natureza: t.natureza,
         ignorado: t.ignored,
         status: (!!t.cat || t.ignored) ? 'Conciliado' : 'Pendente',
-        created_at: finalCreatedAt,
-        batch_id: finalBatchId
+        created_at: finalCreatedAt
       }));
 
       const { error } = await supabase.from('transactions').insert(payload);
