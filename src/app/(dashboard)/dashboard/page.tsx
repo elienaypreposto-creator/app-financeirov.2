@@ -19,6 +19,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState("pj");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiInsights, setAiInsights] = useState<string | null>(null);
+  const [profile, setProfile] = useState<any>(null);
 
   // Filter States
   const [selectedYears, setSelectedYears] = useState<number[]>([]); 
@@ -51,6 +52,18 @@ export default function DashboardPage() {
   });
 
   const incomeColors = ["#00A878", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#10B981"];
+
+  const fetchProfile = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      if (data) {
+        setProfile(data);
+        if (data.controle_tipo === 'pf') setActiveTab('pf');
+        else setActiveTab('pj');
+      }
+    }
+  }, [supabase]);
 
   const parseTrDate = (dateStr: string) => {
     if (!dateStr) return new Date();
@@ -95,14 +108,22 @@ export default function DashboardPage() {
 
     let fatMensal = 0;
     let despOp = 0;
-    filtered.filter(t => (t.tipo_conta || "").toUpperCase().includes('PJ')).forEach(t => {
-      if (t.valor > 0) fatMensal += t.valor;
-      else despOp += Math.abs(t.valor);
+    
+    // Process PJ (Business)
+    filtered.filter(t => (t.tipo_conta || "").toUpperCase().includes('PJ') && t.natureza !== 'Transferência').forEach(t => {
+      if (t.natureza === 'Receita') fatMensal += t.valor;
+      else if (t.natureza === 'Despesa') despOp += Math.abs(t.valor);
+      else if (t.valor > 0) fatMensal += t.valor; // Fallback
+      else despOp += Math.abs(t.valor); // Fallback
     });
 
     const currentYear = new Date().getFullYear();
-    const fatAnualAcumulado = txs.filter(t => (t.tipo_conta || "").toUpperCase().includes('PJ') && t.valor > 0 && parseTrDate(t.data_transacao).getFullYear() === currentYear)
-      .reduce((acc, t) => acc + t.valor, 0); 
+    const fatAnualAcumulado = txs.filter(t => 
+      (t.tipo_conta || "").toUpperCase().includes('PJ') && 
+      (t.natureza === 'Receita' || (t.valor > 0 && !t.natureza)) && 
+      t.natureza !== 'Transferência' &&
+      parseTrDate(t.data_transacao).getFullYear() === currentYear
+    ).reduce((acc, t) => acc + t.valor, 0); 
 
     const proLabore = fatMensal * 0.28;
     const dasInss = fatMensal * 0.06;
@@ -131,15 +152,15 @@ export default function DashboardPage() {
       totalIncomePF += realLucroIsento;
     }
 
-    filtered.filter(t => (t.tipo_conta || "").toUpperCase().includes('PF')).forEach(t => {
-      if (t.valor > 0) {
+    // Process PF (Personal)
+    filtered.filter(t => (t.tipo_conta || "").toUpperCase().includes('PF') && t.natureza !== 'Transferência').forEach(t => {
+      if (t.natureza === 'Receita' || (t.valor > 0 && !t.natureza)) {
         const cat = t.categoria || "Outras Rendas";
         incomeCatMap[cat] = (incomeCatMap[cat] || 0) + t.valor;
         totalIncomePF += t.valor;
-      } else {
+      } else if (t.natureza === 'Despesa' || (t.valor < 0 && !t.natureza)) {
         const val = Math.abs(t.valor);
-        const cat = (t.categoria || "");
-        if (!cat) return; 
+        const cat = (t.categoria || "Diversos");
         
         expenseCatMap[cat] = (expenseCatMap[cat] || 0) + val;
 
@@ -178,8 +199,9 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    fetchProfile();
     fetchTransactions();
-  }, [fetchTransactions]);
+  }, [fetchProfile, fetchTransactions]);
 
   const handleAnalyse = () => {
     setIsAnalyzing(true);
@@ -224,13 +246,17 @@ export default function DashboardPage() {
             <p className="text-slate-400 text-[10px] font-bold mt-2 uppercase tracking-widest opacity-70">Gestão integrada do seu CNPJ e do seu CPF</p>
           </div>
           
-          <TabsList className="bg-slate-100/50 p-1 rounded-full flex border border-slate-200/50 h-auto">
-            <TabsTrigger value="pj" className="px-6 py-2.5 gap-3 flex items-center bg-transparent border-0 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md rounded-full transition-all font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-600">
-              <Building2 className="w-4 h-4" /> Visão Tributária (PJ)
-            </TabsTrigger>
-            <TabsTrigger value="pf" className="px-6 py-2.5 gap-3 flex items-center bg-transparent border-0 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md rounded-full transition-all font-black text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-600">
-              <UserIcon className="w-4 h-4" /> Visão Pessoal (PF)
-            </TabsTrigger>
+          <TabsList className="bg-slate-100/50 p-1 rounded-full flex border border-slate-200/50 h-auto overflow-x-auto max-w-full">
+            {(profile?.controle_tipo === 'pj' || profile?.controle_tipo === 'both' || !profile) && (
+              <TabsTrigger value="pj" className="px-4 md:px-6 py-2.5 gap-3 flex items-center bg-transparent border-0 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md rounded-full transition-all font-black text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-600">
+                <Building2 className="w-4 h-4" /> Visão Tributária (PJ)
+              </TabsTrigger>
+            )}
+            {(profile?.controle_tipo === 'pf' || profile?.controle_tipo === 'both' || !profile) && (
+              <TabsTrigger value="pf" className="px-4 md:px-6 py-2.5 gap-3 flex items-center bg-transparent border-0 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md rounded-full transition-all font-black text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-600">
+                <UserIcon className="w-4 h-4" /> Visão Pessoal (PF)
+              </TabsTrigger>
+            )}
           </TabsList>
           
           <div className="flex items-center gap-0 bg-white border border-slate-200 p-1.5 rounded-full shadow-sm">
@@ -269,17 +295,17 @@ export default function DashboardPage() {
         <main className="flex-1 flex flex-col xl:flex-row overflow-hidden relative">
           <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar space-y-10">
             <TabsContent value="pj" className="space-y-10 mt-0 focus-visible:ring-0">
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                <Card className="bg-white border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2.5rem] p-10 flex flex-col justify-between group overflow-hidden relative border-t-4 border-emerald-500 shadow-emerald-500/5">
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
+                <Card className="bg-white border-0 shadow-[0_20px_50px_rgba(0,0,0,0.04)] rounded-[2.5rem] p-8 md:p-10 flex flex-col justify-between group overflow-hidden relative border-t-4 border-emerald-500 transition-all hover:shadow-emerald-500/10">
                   <CardHeader className="p-0 mb-8">
                     <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
                       <Target className="w-4 h-4 text-emerald-500" /> Termômetro de Limite MEI
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="flex justify-between items-end mb-6">
+                    <div className="flex flex-col md:flex-row justify-between items-end mb-6 gap-4">
                       <div>
-                        <p className="text-5xl font-black text-slate-800 tracking-tighter">{formatBRL(pjStats.faturamentoAnual)}</p>
+                        <p className="text-4xl md:text-5xl font-black text-slate-800 tracking-tighter">{formatBRL(pjStats.faturamentoAnual)}</p>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-2">Acumulado Real</p>
                       </div>
                       <div className="text-right">
@@ -293,14 +319,15 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="bg-[#00A878] text-white shadow-[0_20px_50px_rgba(0,168,120,0.3)] rounded-[2.5rem] p-10 flex flex-col justify-between relative overflow-hidden group border-0">
+                <Card className="bg-gradient-to-br from-[#00A878] to-[#008f66] text-white shadow-[0_20px_50px_rgba(0,168,120,0.3)] rounded-[2.5rem] p-8 md:p-10 flex flex-col justify-between relative overflow-hidden group border-0 transition-all hover:scale-[1.02]">
+                  <div className="absolute top-0 right-0 p-10 opacity-10 group-hover:scale-110 transition-transform"><Building2 className="w-40 h-40" /></div>
                   <CardHeader className="p-0 mb-6 relative z-10">
                     <CardTitle className="text-[10px] font-black uppercase tracking-[0.3em] opacity-80 flex items-center gap-3">
                       <ShieldCheck className="w-5 h-5 text-white" /> Transferência Segura
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0 relative z-10">
-                    <h3 className="text-6xl font-black tracking-tighter leading-none mb-4">{formatBRL(pjStats.transferenciaSegura)}</h3>
+                    <h3 className="text-4xl md:text-6xl font-black tracking-tighter leading-none mb-4">{formatBRL(pjStats.transferenciaSegura)}</h3>
                     <p className="text-xs font-bold opacity-80 mb-10 max-w-[280px] leading-relaxed">Valor que pode ser transferido para a conta PF com <span className="bg-white/20 px-2 py-0.5 rounded-md text-white">0% de IRPF</span>.</p>
                   </CardContent>
                 </Card>
@@ -314,8 +341,8 @@ export default function DashboardPage() {
                     </CardTitle>
                   </div>
                 </CardHeader>
-                <CardContent className="p-0">
-                    <table className="w-full text-sm">
+                <CardContent className="p-0 overflow-x-auto">
+                    <table className="w-full text-sm min-w-[600px]">
                       <thead>
                         <tr className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
                           <th className="px-10 py-5 text-left">Indicador</th>
@@ -335,9 +362,9 @@ export default function DashboardPage() {
             </TabsContent>
 
             <TabsContent value="pf" className="space-y-10 mt-0 focus-visible:ring-0">
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-                 {/* COMPOSIÇÃO DE RENDA TOTAL - MELHORADA */}
-                 <Card className="bg-white border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2.5rem] p-10 flex flex-col min-h-[500px]">
+               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
+                 {/* COMPOSIÇÃO DE RENDA TOTAL */}
+                 <Card className="bg-white border-0 shadow-[0_20px_50px_rgba(0,0,0,0.04)] rounded-[2.5rem] p-8 md:p-10 flex flex-col min-h-[500px] border-t-4 border-slate-100">
                     <CardHeader className="p-0 mb-4">
                       <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
                         <PieChartIcon className="w-4 h-4 text-emerald-500" /> Composição de Renda Total

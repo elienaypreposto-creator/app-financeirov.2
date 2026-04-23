@@ -25,6 +25,7 @@ export type Transaction = {
   value: number;
   bank: string;
   cat?: string;
+  natureza?: 'Receita' | 'Despesa' | 'Transferência';
   ignored: boolean;
   batch_id?: string;
   temp_timestamp?: string;
@@ -130,7 +131,15 @@ function smartParseCSV(csvText: string, bankName: string): Transaction[] {
     if (tVal === 0 && cols[2]) tVal = parseFloat(cols[2].replace(/\./g, '').replace(',', '.')) || 0;
 
     if (tDesc && tVal !== 0) {
-      results.push({ id: Math.random().toString(), date: tDate || new Date().toLocaleDateString('pt-BR'), desc: tDesc, value: tVal, bank: bankName, ignored: false });
+      results.push({
+        id: Math.random().toString(),
+        date: tDate || new Date().toLocaleDateString('pt-BR'),
+        desc: tDesc,
+        value: tVal,
+        bank: bankName,
+        natureza: tVal > 0 ? 'Receita' : 'Despesa',
+        ignored: false
+      });
     }
   });
 
@@ -153,7 +162,15 @@ function smartParseOFX(ofxText: string, bankName: string): Transaction[] {
     const tDesc = memoMatch ? memoMatch[1].trim().substring(0, 80) : "Transação Bancária OFX";
 
     if (tVal !== 0 && tDate) {
-      results.push({ id: Math.random().toString(36).substring(2, 9), date: tDate, desc: tDesc, value: tVal, bank: bankName, ignored: false });
+      results.push({
+        id: Math.random().toString(36).substring(2, 9),
+        date: tDate,
+        desc: tDesc,
+        value: tVal,
+        bank: bankName,
+        natureza: tVal > 0 ? 'Receita' : 'Despesa',
+        ignored: false
+      });
     }
   }
 
@@ -179,7 +196,15 @@ function smartParseXLSX(data: any[], bankName: string): Transaction[] {
     if (tVal === 0) tVal = parseFloat(String(values[2]).replace(/\./g, "").replace(",", ".")) || 0;
 
     if (tDesc && tVal !== 0) {
-      results.push({ id: Math.random().toString(36).substring(2, 9), date: tDate, desc: tDesc, value: tVal, bank: bankName, ignored: false });
+      results.push({
+        id: Math.random().toString(36).substring(2, 9),
+        date: tDate,
+        desc: tDesc,
+        value: tVal,
+        bank: bankName,
+        natureza: tVal > 0 ? 'Receita' : 'Despesa',
+        ignored: false
+      });
     }
   });
 
@@ -251,7 +276,7 @@ function ConciliacaoView({
   const [filterStatus, setFilterStatus] = useState("Todos");
   const [filterConta, setFilterConta] = useState("Todas");
   const [search, setSearch] = useState("");
-  const monthNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const [selectedYear, setSelectedYear] = useState(String(new Date().getFullYear()));
 
@@ -450,7 +475,7 @@ function ConciliacaoView({
       </div>
 
       {/* Filters Bar */}
-      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm px-5 py-4 flex flex-wrap items-end gap-4">
+      <div className="bg-white border border-slate-100 rounded-2xl shadow-sm px-5 py-4 flex flex-wrap items-center gap-4">
 
         {/* STATUS */}
         <div className="flex flex-col gap-1.5">
@@ -492,8 +517,8 @@ function ConciliacaoView({
                 {selectedMonths.length === 0
                   ? "Todos"
                   : selectedMonths.length === 1
-                  ? monthNames[selectedMonths[0] - 1]
-                  : `${selectedMonths.length} meses`}
+                    ? monthNames[selectedMonths[0] - 1]
+                    : `${selectedMonths.length} meses`}
               </span>
               <ChevronDown className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
             </DropdownMenuTrigger>
@@ -545,7 +570,7 @@ function ConciliacaoView({
         </div>
 
         {/* PESQUISA */}
-        <div className="ml-auto flex flex-col gap-1.5">
+        <div className="flex-1 min-w-[200px] flex flex-col gap-1.5">
           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pesquisa</label>
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
@@ -553,15 +578,15 @@ function ConciliacaoView({
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Pesquisar Banco..."
-              className="pl-9 pr-4 h-10 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 bg-slate-50 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 w-[200px] transition-colors hover:border-slate-300"
+              className="pl-9 pr-4 h-10 border border-slate-200 rounded-xl text-sm font-semibold text-slate-700 bg-slate-50 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 w-full transition-colors hover:border-slate-300"
             />
           </div>
         </div>
 
       </div>
 
-      <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white shadow-xl">
-        <table className="w-full text-sm text-left text-slate-700">
+      <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white shadow-xl overflow-x-auto">
+        <table className="w-full text-sm text-left text-slate-700 min-w-[1000px]">
           <thead className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 border-b">
             <tr>
               <th className="px-6 py-5 w-[140px]">Status</th>
@@ -578,11 +603,10 @@ function ConciliacaoView({
             {filteredGroups.map((group) => (
               <tr key={group.id} className="border-b border-slate-50 hover:bg-slate-50/50">
                 <td className="px-6 py-4">
-                  <Badge className={`text-[10px] font-black rounded-full px-3 py-1 ${
-                    group.status === "Conciliado" ? "bg-emerald-100 text-emerald-700" :
-                    group.status === "Parcial" ? "bg-amber-100 text-amber-700" :
-                    "bg-slate-100 text-slate-500"
-                  }`}>
+                  <Badge className={`text-[10px] font-black rounded-full px-3 py-1 ${group.status === "Conciliado" ? "bg-emerald-100 text-emerald-700" :
+                      group.status === "Parcial" ? "bg-amber-100 text-amber-700" :
+                        "bg-slate-100 text-slate-500"
+                    }`}>
                     {group.status.toUpperCase()}
                   </Badge>
                 </td>
@@ -758,7 +782,9 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
           const filtered = data.filter((t: any) => t.created_at.startsWith(dateKey));
           setTransactions(filtered.map((t: any) => ({
             id: t.id, date: t.data_transacao, desc: t.descricao,
-            value: Number(t.valor), bank: t.banco, cat: t.categoria, ignored: t.ignorado
+            value: Number(t.valor), bank: t.banco, cat: t.categoria,
+            natureza: t.natureza || (Number(t.valor) > 0 ? 'Receita' : 'Despesa'),
+            ignored: t.ignorado
           })));
           setSelectedBank(initialGroup.bank);
           setSelectedConta(initialGroup.tipo.replace('Conta ', ''));
@@ -878,24 +904,44 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
       const { data: authData } = await supabase.auth.getUser();
       if (!authData?.user) throw new Error("Não autenticado");
 
+      // FIX: If we are editing an existing group, delete old records first to avoid duplication
+      if (initialGroup) {
+        let delQuery = supabase.from('transactions').delete().eq('user_id', authData.user.id);
+        if (initialGroup.batch_id) {
+          delQuery = delQuery.eq('batch_id', initialGroup.batch_id);
+        } else if (initialGroup.fullCreatedAt) {
+          delQuery = delQuery.eq('created_at', initialGroup.fullCreatedAt);
+        } else {
+          const dateKey = initialGroup.id.split('|').pop();
+          delQuery = delQuery.eq('banco', initialGroup.bank).eq('tipo_conta', initialGroup.tipo.replace('Conta ', '')).like('created_at', `${dateKey}%`);
+        }
+        await delQuery;
+      }
+
+      const finalBatchId = initialGroup?.batch_id || Math.random().toString(36).substring(2, 15);
+      const finalCreatedAt = initialGroup?.fullCreatedAt || new Date().toISOString();
+
       const payload = transactions.map(t => ({
         user_id: authData.user.id,
         banco: selectedBank,
         tipo_conta: selectedConta,
+        tipo: t.value > 0 ? 'entrada' : 'saida',
         data_transacao: t.date,
         descricao: t.desc,
         valor: t.value,
         categoria: t.cat || null,
+        natureza: t.natureza,
         ignorado: t.ignored,
         status: (!!t.cat || t.ignored) ? 'Conciliado' : 'Pendente',
-        created_at: t.temp_timestamp || new Date().toISOString()
+        created_at: finalCreatedAt,
+        batch_id: finalBatchId
       }));
 
       const { error } = await supabase.from('transactions').insert(payload);
       if (error) throw error;
       onSave();
     } catch (err) {
-      alert("Erro: " + (err as Error).message);
+      alert("Erro ao salvar: " + (err as Error).message);
     } finally {
       setIsSaving(false);
     }
@@ -1079,16 +1125,17 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
 
         {transactions.length > 0 && (
           <>
-            <div className="border border-slate-100 rounded-2xl overflow-hidden bg-white flex flex-col shadow-xl">
-              <table className="w-full text-sm text-left text-slate-700">
+            <div className="border border-slate-100 rounded-2xl overflow-x-auto bg-white flex flex-col shadow-xl">
+              <table className="w-full text-sm text-left text-slate-700 min-w-[900px]">
                 <thead className="bg-[#FAFBFD] border-b border-slate-100">
                   <tr className="text-left">
                     <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest w-10 text-center">OK</th>
                     <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[100px]">Data</th>
                     <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Descrição</th>
                     <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right w-[140px]">Valor (R$)</th>
-                    <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[240px]">Categoria</th>
-                    <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-[120px]">Ações</th>
+                    <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[120px]">Natureza</th>
+                    <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest w-[200px]">Categoria</th>
+                    <th className="px-4 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center w-[100px]">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1103,6 +1150,18 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
                         <td className="px-4 py-4 font-bold text-slate-800" title={t.desc}>{t.desc}</td>
                         <td className={`px-4 py-4 font-black whitespace-nowrap text-right ${t.value > 0 ? "text-emerald-600" : "text-rose-600"}`}>
                           {formatCurrency(t.value)}
+                        </td>
+                        <td className="px-4 py-4">
+                          <Select value={t.natureza || ""} onValueChange={(val: any) => setTransactions(prev => prev.map(item => item.id === t.id ? { ...item, natureza: val } : item))}>
+                            <SelectTrigger className="w-full bg-white border-slate-200 font-bold rounded-xl h-10 text-[10px] uppercase tracking-widest">
+                              <SelectValue placeholder="Natureza" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-white border-slate-200 rounded-xl">
+                              <SelectItem value="Receita" className="text-emerald-600 font-black text-[10px] uppercase tracking-widest">Receita</SelectItem>
+                              <SelectItem value="Despesa" className="text-rose-600 font-black text-[10px] uppercase tracking-widest">Despesa</SelectItem>
+                              <SelectItem value="Transferência" className="text-blue-600 font-black text-[10px] uppercase tracking-widest">Transferência</SelectItem>
+                            </SelectContent>
+                          </Select>
                         </td>
                         <td className="px-4 py-4">
                           <Select value={t.cat || ""} onValueChange={(val) => handleCategoryChange(val, t.id)} disabled={isChecked && !t.ignored}>
@@ -1120,27 +1179,27 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
                                 />
                               </div>
                               <div className="overflow-y-auto max-h-[250px]">
-                                {t.value >= 0 ? (
+                                {t.natureza === 'Receita' ? (
                                   <SelectGroup>
                                     <SelectLabel className="text-emerald-400 tracking-widest uppercase text-[10px] px-2 py-1.5">Entradas</SelectLabel>
                                     {categorias.entradas
                                       .filter(c => c.toLowerCase().includes(catSearch.toLowerCase()))
                                       .map(c => <SelectItem key={c} value={c} className="font-bold text-slate-700">{c}</SelectItem>)
                                     }
-                                    {categorias.entradas.filter(c => c.toLowerCase().includes(catSearch.toLowerCase())).length === 0 && (
-                                      <div className="px-2 py-4 text-[10px] text-slate-400 font-bold text-center italic">Nenhuma encontrada</div>
-                                    )}
                                   </SelectGroup>
-                                ) : (
+                                ) : t.natureza === 'Despesa' ? (
                                   <SelectGroup>
                                     <SelectLabel className="text-rose-400 tracking-widest uppercase text-[10px] px-2 py-1.5">Saídas</SelectLabel>
                                     {categorias.saidas
                                       .filter(c => c.toLowerCase().includes(catSearch.toLowerCase()))
                                       .map(c => <SelectItem key={c} value={c} className="font-bold text-slate-700">{c}</SelectItem>)
                                     }
-                                    {categorias.saidas.filter(c => c.toLowerCase().includes(catSearch.toLowerCase())).length === 0 && (
-                                      <div className="px-2 py-4 text-[10px] text-slate-400 font-bold text-center italic">Nenhuma encontrada</div>
-                                    )}
+                                  </SelectGroup>
+                                ) : (
+                                  <SelectGroup>
+                                    <SelectLabel className="text-blue-400 tracking-widest uppercase text-[10px] px-2 py-1.5">Transferências</SelectLabel>
+                                    {/* For Transfers, we can show both or a specific list. For now, showing both. */}
+                                    {[...categorias.entradas, ...categorias.saidas].filter(c => c.toLowerCase().includes(catSearch.toLowerCase())).map(c => <SelectItem key={c} value={c} className="font-bold text-slate-700">{c}</SelectItem>)}
                                   </SelectGroup>
                                 )}
                                 <div className="h-px bg-slate-50 my-1" />
@@ -1150,19 +1209,19 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
                           </Select>
                         </td>
                         <td className="px-4 py-4">
-                          <div className="flex justify-center gap-3">
+                          <div className="flex justify-center gap-2">
                             <span title="Limpar Categoria" className="p-2 bg-slate-100 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg cursor-pointer transition-all" onClick={() => clearCategory(t.id)}>
-                              <PencilLine className="w-4 h-4" />
+                              <PencilLine className="w-3.5 h-3.5" />
                             </span>
                             <span title={t.ignored ? "Restaurar Linha" : "Ignorar p/ Cálculo"} className={`p-2 rounded-lg cursor-pointer transition-all ${t.ignored ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-400 hover:text-rose-500 hover:bg-rose-50'}`} onClick={() => toggleIgnore(t.id)}>
-                              <Ban className="w-4 h-4" />
+                              <Ban className="w-3.5 h-3.5" />
                             </span>
                             <span title="Excluir Transação" className="p-2 bg-slate-100 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer transition-all" onClick={() => {
                               if (confirm("Remover esta transação do extrato?")) {
                                 setTransactions(prev => prev.filter(item => item.id !== t.id));
                               }
                             }}>
-                              <Trash className="w-4 h-4" />
+                              <Trash className="w-3.5 h-3.5" />
                             </span>
                           </div>
                         </td>

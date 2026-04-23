@@ -27,6 +27,7 @@ export default function RegisterPage() {
   const [cpf, setCpf] = useState("");
   const [cnpj, setCnpj] = useState("");
   const [regime, setRegime] = useState("Pessoa Física Apenas (Sem Empresa)");
+  const [controle, setControle] = useState("both");
   const [ddd, setDdd] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
@@ -118,6 +119,7 @@ export default function RegisterPage() {
          cpf: cpf || null,
          cnpj: cnpj || null,
          regime_tributario: regime,
+         controle_tipo: controle,
          telefone: `${ddd}${phone}` || null,
          avatar: avatar || null, // Link the Base64 avatar from registration
          updated_at: new Date().toISOString()
@@ -136,8 +138,8 @@ export default function RegisterPage() {
       </div>
 
       <div className="w-full max-w-lg bg-card/70 backdrop-blur-xl border border-border/50 rounded-2xl p-8 shadow-2xl z-10 relative">
-        <div className="flex flex-col items-center mb-6">
-          <p className="text-muted-foreground text-sm font-bold tracking-widest uppercase opacity-70">Crie seu Perfil e Conta Empresarial</p>
+        <div className="flex flex-col items-center mb-6 text-center">
+          <p className="text-muted-foreground text-[10px] font-black tracking-[0.3em] uppercase opacity-80">Crie seu Perfil e Conta Empresarial</p>
         </div>
 
         {errorMsg && (
@@ -169,9 +171,9 @@ export default function RegisterPage() {
                       draggable={false}
                     />
                  ) : (
-                    <div className="flex flex-col items-center text-slate-500">
+                    <div className="flex flex-col items-center text-slate-400">
                       <Camera className="w-8 h-8 mb-1 opacity-50" />
-                      <span className="text-[10px] uppercase font-bold tracking-widest text-slate-600">Foto</span>
+                      <span className="text-[10px] uppercase font-bold tracking-widest">Foto</span>
                     </div>
                  )}
                </div>
@@ -198,59 +200,69 @@ export default function RegisterPage() {
 
           <div className="space-y-4 pt-2">
             <div className="space-y-1.5">
-               <Label htmlFor="name" className="font-semibold text-slate-200">Nome Completo</Label>
-               <Input id="name" value={name} onChange={e => setName(e.target.value)} required placeholder="João da Silva" className="bg-background/50 border-slate-700/50 focus:border-primary" />
+               <Label htmlFor="name" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Nome Completo</Label>
+               <Input id="name" value={name} onChange={e => setName(e.target.value)} required placeholder="João da Silva" className="bg-background/50 border-border focus:border-primary h-11 rounded-xl" />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="font-semibold text-slate-200">Email Administrativo</Label>
-              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="seu@email.com" className="bg-background/50 border-slate-700/50 focus:border-primary" />
+              <Label htmlFor="email" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Email Administrativo</Label>
+              <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required placeholder="seu@email.com" className="bg-background/50 border-border focus:border-primary h-11 rounded-xl" />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="cpf" className="font-semibold text-slate-200">CPF (Contas PF)</Label>
-                <Input id="cpf" type="text" value={cpf} onChange={e => setCpf(e.target.value)} placeholder="000.000.000-00" className="bg-background/50 border-slate-700/50 focus:border-primary" />
+                <Label htmlFor="cpf" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">CPF (Contas PF)</Label>
+                <Input id="cpf" type="text" value={cpf} onChange={e => setCpf(e.target.value)} placeholder="000.000.000-00" className="bg-background/50 border-border focus:border-primary h-11 rounded-xl" />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="cnpj" className="font-semibold text-slate-200">CNPJ (Contas PJ)</Label>
-                <Input id="cnpj" type="text" value={cnpj} onChange={e => setCnpj(e.target.value)} placeholder="00.000.000/0001-00" className="bg-background/50 border-slate-700/50 focus:border-primary" />
+                <Label htmlFor="cnpj" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">CNPJ (Contas PJ)</Label>
+                <Input id="cnpj" type="text" value={cnpj} onChange={e => setCnpj(e.target.value)} placeholder="00.000.000/0001-00" className="bg-background/50 border-border focus:border-primary h-11 rounded-xl" />
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label htmlFor="regime" className="font-semibold text-slate-200">Regime Tributário Oficial</Label>
-              <select id="regime" value={regime} onChange={e => setRegime(e.target.value)} className="w-full bg-background/50 border border-slate-700/50 rounded-md p-2.5 text-sm text-slate-200 appearance-none focus:outline-none focus:ring-1 focus:ring-primary">
-                <option className="bg-slate-900 text-slate-300">Pessoa Física Apenas (Sem Empresa)</option>
-                <option className="bg-slate-900 text-slate-300">MEI (Microempreendedor Individual)</option>
-                <option className="bg-slate-900 text-slate-300">ME (Simples Nacional)</option>
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="regime" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Regime Tributário</Label>
+                <select id="regime" value={regime} onChange={e => setRegime(e.target.value)} className="w-full bg-background/50 border border-border rounded-xl h-11 px-3 text-sm text-foreground appearance-none focus:outline-none focus:ring-1 focus:ring-primary">
+                  <option className="bg-background text-foreground">Pessoa Física Apenas</option>
+                  <option className="bg-background text-foreground">MEI (Microempreendedor)</option>
+                  <option className="bg-background text-foreground">ME (Simples Nacional)</option>
+                </select>
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="controle" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Tipo de Controle</Label>
+                <select id="controle" value={controle} onChange={e => setControle(e.target.value)} className="w-full bg-background/50 border border-border rounded-xl h-11 px-3 text-sm text-foreground appearance-none focus:outline-none focus:ring-1 focus:ring-primary">
+                  <option value="pf" className="bg-background text-foreground">Controle PF (Pessoal)</option>
+                  <option value="pj" className="bg-background text-foreground">Controle PJ (Empresarial)</option>
+                  <option value="both" className="bg-background text-foreground">Controle PF e PJ (Ambos)</option>
+                </select>
+              </div>
             </div>
 
             <div className="space-y-1.5 pt-2">
-              <Label htmlFor="phone" className="font-semibold text-slate-200">Telefone Celular</Label>
+              <Label htmlFor="phone" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Telefone Celular</Label>
               <div className="flex gap-4">
-                 <Input id="ddd" type="text" value={ddd} onChange={e => setDdd(e.target.value)} placeholder="DDD" className="w-20 bg-background/50 border-slate-700/50 focus:border-primary" />
-                 <Input id="phone" type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="00000-0000" className="flex-1 bg-background/50 border-slate-700/50 focus:border-primary" />
+                 <Input id="ddd" type="text" value={ddd} onChange={e => setDdd(e.target.value)} placeholder="DDD" className="w-20 bg-background/50 border-border focus:border-primary h-11 rounded-xl" />
+                 <Input id="phone" type="text" value={phone} onChange={e => setPhone(e.target.value)} placeholder="00000-0000" className="flex-1 bg-background/50 border-border focus:border-primary h-11 rounded-xl" />
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="password" className="font-semibold text-slate-200">Senha Segura</Label>
+                <Label htmlFor="password" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Senha Segura</Label>
                 <div className="relative">
-                  <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required placeholder="Mínimo de 8 caracteres alfanuméricos" className="pl-3 pr-10 bg-background/50 border-slate-700/50 focus:border-primary" />
+                  <Input id="password" type={showPassword ? "text" : "password"} value={password} onChange={e => setPassword(e.target.value)} required placeholder="Mínimo de 8 caracteres" className="pl-3 pr-10 bg-background/50 border-border focus:border-primary h-11 rounded-xl" />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 gap-2 text-muted-foreground">
-                    {showPassword ? <EyeOff className="w-4 h-4 cursor-pointer hover:text-slate-300" onClick={() => setShowPassword(false)} /> : <Eye className="w-4 h-4 cursor-pointer hover:text-slate-300" onClick={() => setShowPassword(true)} />}
+                    {showPassword ? <EyeOff className="w-4 h-4 cursor-pointer hover:text-foreground" onClick={() => setShowPassword(false)} /> : <Eye className="w-4 h-4 cursor-pointer hover:text-foreground" onClick={() => setShowPassword(true)} />}
                   </div>
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="confirm_password" className="font-semibold text-slate-200">Confirmar Senha</Label>
+                <Label htmlFor="confirm_password" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Confirmar Senha</Label>
                 <div className="relative">
-                  <Input id="confirm_password" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required placeholder="Repita a senha" className="pl-3 pr-10 bg-background/50 border-slate-700/50 focus:border-primary" />
+                  <Input id="confirm_password" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required placeholder="Repita a senha" className="pl-3 pr-10 bg-background/50 border-border focus:border-primary h-11 rounded-xl" />
                   <div className="absolute inset-y-0 right-0 flex items-center pr-3 gap-2 text-muted-foreground">
-                    {showConfirmPassword ? <EyeOff className="w-4 h-4 cursor-pointer hover:text-slate-300" onClick={() => setShowConfirmPassword(false)} /> : <Eye className="w-4 h-4 cursor-pointer hover:text-slate-300" onClick={() => setShowConfirmPassword(true)} />}
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4 cursor-pointer hover:text-foreground" onClick={() => setShowConfirmPassword(false)} /> : <Eye className="w-4 h-4 cursor-pointer hover:text-foreground" onClick={() => setShowConfirmPassword(true)} />}
                   </div>
                 </div>
               </div>
