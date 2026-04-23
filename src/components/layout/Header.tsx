@@ -136,26 +136,29 @@ export function Header() {
   };
 
   return (
-    <header className="h-16 flex items-center justify-between px-8 shrink-0 relative bg-white border-b border-slate-100">
-      <div className="flex items-center gap-4">
-        {controleTipo === 'both' && (
-          <div className="bg-slate-100 p-1 rounded-xl flex border border-slate-200">
-            <button 
-              onClick={() => setViewMode('pj')}
-              className={`px-5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'pj' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              PJ
-            </button>
-            <button 
-              onClick={() => setViewMode('pf')}
-              className={`px-5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${viewMode === 'pf' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}
-            >
-              PF
-            </button>
-          </div>
-        )}
-      </div>
+    <header className="h-20 flex items-center justify-between px-8 shrink-0 relative bg-white border-b border-slate-100 shadow-sm z-50">
+      {/* Left side empty or logo */}
+      <div className="flex-1"></div>
 
+      {/* Middle: PJ/PF Toggle */}
+      {controleTipo === 'both' && (
+        <div className="absolute left-1/2 -translate-x-1/2 flex bg-slate-100/80 p-1 rounded-full border border-slate-200/50 backdrop-blur-sm">
+          <button 
+            onClick={() => setViewMode('pj')}
+            className={`px-8 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${viewMode === 'pj' ? 'bg-white text-slate-900 shadow-md ring-1 ring-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            PJ
+          </button>
+          <button 
+            onClick={() => setViewMode('pf')}
+            className={`px-8 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 ${viewMode === 'pf' ? 'bg-white text-slate-900 shadow-md ring-1 ring-slate-200/50' : 'text-slate-400 hover:text-slate-600'}`}
+          >
+            PF
+          </button>
+        </div>
+      )}
+
+      {/* Right side: Profile + Logout */}
       <div className="flex items-center gap-4">
         <Dialog>
         <DialogTrigger render={
