@@ -235,18 +235,7 @@ export default function DashboardPage() {
             <p className="text-slate-400 text-[10px] font-bold mt-2 uppercase tracking-widest opacity-70">Gestão integrada do seu CNPJ e do seu CPF</p>
           </div>
           
-          <TabsList className="bg-slate-100/50 p-1 rounded-full flex border border-slate-200/50 h-auto overflow-x-auto max-w-full">
-            {(controleTipo === 'pj' || controleTipo === 'both' || !controleTipo) && (
-              <TabsTrigger value="pj" className="px-4 md:px-6 py-2.5 gap-3 flex items-center bg-transparent border-0 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md rounded-full transition-all font-black text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-600">
-                <Building2 className="w-4 h-4" /> Visão Tributária (PJ)
-              </TabsTrigger>
-            )}
-            {(controleTipo === 'pf' || controleTipo === 'both' || !controleTipo) && (
-              <TabsTrigger value="pf" className="px-4 md:px-6 py-2.5 gap-3 flex items-center bg-transparent border-0 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md rounded-full transition-all font-black text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-600">
-                <UserIcon className="w-4 h-4" /> Visão Pessoal (PF)
-              </TabsTrigger>
-            )}
-          </TabsList>
+          {/* Tabs moved to Header */}
           
           <div className="flex items-center gap-0 bg-white border border-slate-200 p-1.5 rounded-full shadow-sm">
              <div className="flex flex-col px-4 border-r border-slate-100">
@@ -463,7 +452,7 @@ export default function DashboardPage() {
             <div className="h-full bg-white/40 backdrop-blur-3xl border border-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.05)] rounded-[3rem] flex flex-col overflow-hidden relative border-t-4 border-emerald-500/20">
               <div className="p-10 text-center flex flex-col items-center border-b border-white/50">
                 <div className="w-20 h-20 bg-gradient-to-br from-emerald-400 to-[#00A878] rounded-[2rem] flex items-center justify-center text-white mb-6 shadow-2xl shadow-emerald-500/40 animate-in zoom-in duration-500"><Bot className="w-10 h-10" /></div>
-                <h2 className="text-3xl font-black text-slate-800 tracking-tighter mb-2">FinControl AI</h2>
+                <h2 className="text-3xl font-black text-slate-800 tracking-tighter mb-2">Finn</h2>
                 <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div><p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Análise Ativa</p></div>
               </div>
               <div className="flex-1 px-8 flex flex-col justify-center items-center py-10">

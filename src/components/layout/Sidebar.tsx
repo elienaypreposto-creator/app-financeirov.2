@@ -142,8 +142,8 @@ export function Sidebar() {
   };
 
   const navItems = [
-    { name: "Lançamentos", path: "/lancamentos", icon: <FileText className="w-4 h-4" />, subtitle: "Fluxo de Caixa" },
-    { name: "Dashboard Tributário", path: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" />, subtitle: "Os Cálculos" },
+    { name: "Lançamentos", path: "/lancamentos", icon: <FileText className="w-4 h-4" /> },
+    { name: "Dashboards", path: "/dashboard", icon: <LayoutDashboard className="w-4 h-4" /> },
   ];
 
   if (!mounted) return null;
@@ -167,9 +167,8 @@ export function Sidebar() {
               className={`flex items-start gap-4 px-5 py-3.5 mx-3 rounded-[1.2rem] transition-all ${isActive ? 'bg-emerald-50 text-emerald-600 shadow-sm' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'}`}
             >
               <div className="mt-1">{item.icon}</div>
-              <div className="flex flex-col">
+              <div className="flex flex-col justify-center">
                 <span className="text-[13px] font-black">{item.name}</span>
-                <span className={`text-[10px] uppercase tracking-widest ${isActive ? 'text-emerald-500/70' : 'text-slate-300'}`}>{item.subtitle}</span>
               </div>
             </Link>
           );
