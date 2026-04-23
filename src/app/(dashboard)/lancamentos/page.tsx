@@ -22,6 +22,7 @@ import * as XLSX from "xlsx";
 export type Transaction = {
   id: string;
   date: string;
+  time?: string;
   desc: string;
   value: number;
   bank: string;
@@ -157,9 +158,13 @@ function smartParseOFX(ofxText: string, bankName: string): { transactions: Trans
     const block = match[1];
     const amtMatch = block.match(/<TRNAMT>([-\d.]+)/);
     const tVal = amtMatch ? parseFloat(amtMatch[1]) : 0;
-    const dtMatch = block.match(/<DTPOSTED>(\d{4})(\d{2})(\d{2})/);
+    const dtMatch = block.match(/<DTPOSTED>(\d{4})(\d{2})(\d{2})(\d{2})?(\d{2})?(\d{2})?/);
     let tDate = "";
-    if (dtMatch) tDate = `${dtMatch[3]}/${dtMatch[2]}/${dtMatch[1]}`;
+    let tTime = "";
+    if (dtMatch) {
+      tDate = `${dtMatch[3]}/${dtMatch[2]}/${dtMatch[1]}`;
+      if (dtMatch[4] && dtMatch[5]) tTime = `${dtMatch[4]}:${dtMatch[5]}`;
+    }
     const memoMatch = block.match(/<MEMO>([^<]+)/) || block.match(/<NAME>([^<]+)/);
     const tDesc = memoMatch ? memoMatch[1].trim().substring(0, 80) : "Transação Bancária OFX";
 
@@ -167,6 +172,7 @@ function smartParseOFX(ofxText: string, bankName: string): { transactions: Trans
       results.push({
         id: Math.random().toString(36).substring(2, 9),
         date: tDate,
+        time: tTime,
         desc: tDesc,
         value: tVal,
         bank: bankName,
@@ -1147,7 +1153,24 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
                         <td className="px-4 py-4 text-center">
                           <input type="checkbox" checked={isChecked} readOnly className="accent-emerald-500 w-4 h-4 cursor-not-allowed opacity-80" />
                         </td>
-                        <td className="px-4 py-4 whitespace-nowrap text-slate-400 font-bold text-xs">{t.date}</td>
+                        <td className="px-4 py-4 whitespace-nowrap">
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-slate-400 font-bold text-xs">{t.date}</span>
+                              <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-black uppercase">
+                                {(() => {
+                                  const parts = t.date.split('/');
+                                  if (parts.length === 3) {
+                                    const d = new Date(Number(parts[2]), Number(parts[1]) - 1, Number(parts[0]));
+                                    return ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][d.getDay()];
+                                  }
+                                  return "";
+                                })()}
+                              </span>
+                            </div>
+                            {t.time && <span className="text-[9px] font-bold text-slate-400/70 mt-0.5">{t.time}</span>}
+                          </div>
+                        </td>
                         <td className="px-4 py-4 font-bold text-slate-800" title={t.desc}>{t.desc}</td>
                         <td className={`px-4 py-4 font-black whitespace-nowrap text-right ${t.value > 0 ? "text-emerald-600" : "text-rose-600"}`}>
                           {formatCurrency(t.value)}
