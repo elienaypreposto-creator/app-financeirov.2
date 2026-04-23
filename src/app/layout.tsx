@@ -15,6 +15,8 @@ export const metadata: Metadata = {
   }
 };
 
+import { ControlProvider } from "@/contexts/ControlContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -26,7 +28,11 @@ export default function RootLayout({
       translate="no"
       className="h-full antialiased"
     >
-      <body className={`${outfit.className} min-h-full flex flex-col`}>{children}</body>
+      <body className={`${outfit.className} min-h-full flex flex-col`}>
+        <ControlProvider>
+          {children}
+        </ControlProvider>
+      </body>
     </html>
   );
 }

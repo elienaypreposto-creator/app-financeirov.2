@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuChe
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
+import { useControl } from "@/contexts/ControlContext";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
@@ -269,12 +270,12 @@ function ConciliacaoView({
   onEditGroup: (group: Group) => void;
   userId: string | null;
 }) {
+  const { viewMode } = useControl();
   const [dbGroups, setDbGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDownloadModalOpen, setIsDownloadModalOpen] = useState(false);
   const [exportGroup, setExportGroup] = useState<any | null>(null);
   const [filterStatus, setFilterStatus] = useState("Todos");
-  const [filterConta, setFilterConta] = useState("Todas");
   const [search, setSearch] = useState("");
   const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
   const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
@@ -443,7 +444,7 @@ function ConciliacaoView({
 
   const filteredGroups = dbGroups.filter(g => {
     const matchStatus = filterStatus === "Todos" || g.status.toLowerCase() === filterStatus.toLowerCase();
-    const matchConta = filterConta === "Todas" || g.tipo.toUpperCase().includes(filterConta.toUpperCase());
+    const matchConta = g.tipo.toUpperCase().includes(viewMode.toUpperCase());
     const matchSearch = !search || g.bank.toLowerCase().includes(search.toLowerCase());
     const matchMonth = selectedMonths.length === 0 || (() => {
       // Extract month from period (format: dd/mm/yy)
@@ -493,20 +494,7 @@ function ConciliacaoView({
           </Select>
         </div>
 
-        {/* TIPO DE CONTA */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Tipo de Conta</label>
-          <Select value={filterConta} onValueChange={(val) => setFilterConta(val || "Todas")}>
-            <SelectTrigger className="w-[140px] bg-slate-50 border-slate-200 h-10 rounded-xl font-semibold text-slate-700 text-sm focus:ring-emerald-500">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-white rounded-xl shadow-xl border-slate-200">
-              <SelectItem value="Todas">Todas</SelectItem>
-              <SelectItem value="PF">PF</SelectItem>
-              <SelectItem value="PJ">PJ</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {/* Filter Conta removed as it is now controlled by the global toggle */}
 
         {/* MÊS — multi-select */}
         <div className="flex flex-col gap-1.5">

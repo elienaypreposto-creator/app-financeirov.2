@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuCheckboxItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Calendar, Info, TrendingUp, Building2, UserIcon, Sparkles, Loader2, ChevronDown, Send, Bot, Download, X, Eye, ShieldCheck, ArrowUpRight, Zap, LayoutDashboard, Database, CreditCard, RefreshCcw, Target, ListChecks, PieChart as PieChartIcon } from "lucide-react";
+import { useControl } from "@/contexts/ControlContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -16,10 +17,9 @@ import * as XLSX from "xlsx";
 
 export default function DashboardPage() {
   const supabase = createClient();
-  const [activeTab, setActiveTab] = useState("pj");
+  const { viewMode, setViewMode, controleTipo } = useControl();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiInsights, setAiInsights] = useState<string | null>(null);
-  const [profile, setProfile] = useState<any>(null);
 
   // Filter States
   const [selectedYears, setSelectedYears] = useState<number[]>([]); 
@@ -53,17 +53,7 @@ export default function DashboardPage() {
 
   const incomeColors = ["#00A878", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#10B981"];
 
-  const fetchProfile = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-      if (data) {
-        setProfile(data);
-        if (data.controle_tipo === 'pf') setActiveTab('pf');
-        else setActiveTab('pj');
-      }
-    }
-  }, [supabase]);
+  // Fetch profile logic moved to context
 
   const parseTrDate = (dateStr: string) => {
     if (!dateStr) return new Date();
@@ -199,16 +189,15 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetchProfile();
     fetchTransactions();
-  }, [fetchProfile, fetchTransactions]);
+  }, [fetchTransactions]);
 
   const handleAnalyse = () => {
     setIsAnalyzing(true);
     setAiInsights(null);
     setTimeout(() => {
       setIsAnalyzing(false);
-      if (activeTab === "pj") {
+      if (viewMode === "pj") {
         setAiInsights(`Seu faturamento acumulado de ${formatBRL(pjStats.faturamentoAnual)} está sob controle. Considerando a média mensal, você atingirá ${Math.round(pjStats.meiProgress)}% do limite MEI este ano.`);
       } else {
         setAiInsights(`Sua renda total este mês é de ${formatBRL(pfStats.totalIncome)}. A maior parte vem de "${pfStats.incomeData[0]?.name || ' fontes diretas'}". Sua economia real após gastos é de ${formatBRL(pfStats.sobraLiquida)}.`);
@@ -239,7 +228,7 @@ export default function DashboardPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#F8F9FA] text-slate-900 font-sans">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col min-h-screen">
+      <Tabs value={viewMode} onValueChange={(val) => setViewMode(val as any)} className="w-full flex flex-col min-h-screen">
         <div className="px-6 md:px-10 py-8 bg-[#F8F9FA] flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6">
           <div>
             <h1 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">Dashboard Central</h1>
@@ -247,12 +236,12 @@ export default function DashboardPage() {
           </div>
           
           <TabsList className="bg-slate-100/50 p-1 rounded-full flex border border-slate-200/50 h-auto overflow-x-auto max-w-full">
-            {(profile?.controle_tipo === 'pj' || profile?.controle_tipo === 'both' || !profile) && (
+            {(controleTipo === 'pj' || controleTipo === 'both' || !controleTipo) && (
               <TabsTrigger value="pj" className="px-4 md:px-6 py-2.5 gap-3 flex items-center bg-transparent border-0 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md rounded-full transition-all font-black text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-600">
                 <Building2 className="w-4 h-4" /> Visão Tributária (PJ)
               </TabsTrigger>
             )}
-            {(profile?.controle_tipo === 'pf' || profile?.controle_tipo === 'both' || !profile) && (
+            {(controleTipo === 'pf' || controleTipo === 'both' || !controleTipo) && (
               <TabsTrigger value="pf" className="px-4 md:px-6 py-2.5 gap-3 flex items-center bg-transparent border-0 data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-md rounded-full transition-all font-black text-[9px] md:text-[10px] uppercase tracking-widest text-slate-400 hover:text-slate-600">
                 <UserIcon className="w-4 h-4" /> Visão Pessoal (PF)
               </TabsTrigger>

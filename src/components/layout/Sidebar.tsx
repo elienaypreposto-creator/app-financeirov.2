@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { FileText, LayoutDashboard, Plus, Edit2, Check, X, Trash2 } from "lucide-react";
+import { useControl } from "@/contexts/ControlContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { createClient } from "@/lib/supabase/client";
 
@@ -12,6 +13,8 @@ type BankAccount = { id: string, name: string, type: string, agency: string, acc
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+
+  const { viewMode } = useControl();
 
   const [accounts, setAccounts] = useState<BankAccount[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -233,7 +236,7 @@ export function Sidebar() {
         </div>
         
         <div className="space-y-3">
-          {accounts.map(acc => (
+          {accounts.filter(acc => acc.type === viewMode).map(acc => (
             <div key={acc.id} className="flex justify-between items-center text-sm group hover:bg-slate-50 p-1.5 -mx-1.5 rounded-lg transition-colors cursor-default border border-transparent hover:border-slate-100">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 bg-white border border-slate-100 rounded-lg flex items-center justify-center p-0.5 shadow-sm">

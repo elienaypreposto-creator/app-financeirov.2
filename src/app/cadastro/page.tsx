@@ -26,7 +26,6 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [cpf, setCpf] = useState("");
   const [cnpj, setCnpj] = useState("");
-  const [regime, setRegime] = useState("Pessoa Física Apenas (Sem Empresa)");
   const [controle, setControle] = useState("both");
   const [ddd, setDdd] = useState("");
   const [phone, setPhone] = useState("");
@@ -118,7 +117,6 @@ export default function RegisterPage() {
          nome: name,
          cpf: cpf || null,
          cnpj: cnpj || null,
-         regime_tributario: regime,
          controle_tipo: controle,
          telefone: `${ddd}${phone}` || null,
          avatar: avatar || null, // Link the Base64 avatar from registration
@@ -219,15 +217,7 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label htmlFor="regime" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Regime Tributário</Label>
-                <select id="regime" value={regime} onChange={e => setRegime(e.target.value)} className="w-full bg-background/50 border border-border rounded-xl h-11 px-3 text-sm text-foreground appearance-none focus:outline-none focus:ring-1 focus:ring-primary">
-                  <option className="bg-background text-foreground">Pessoa Física Apenas</option>
-                  <option className="bg-background text-foreground">MEI (Microempreendedor)</option>
-                  <option className="bg-background text-foreground">ME (Simples Nacional)</option>
-                </select>
-              </div>
+            <div className="grid grid-cols-1 gap-4">
               <div className="space-y-1.5">
                 <Label htmlFor="controle" className="font-bold text-xs uppercase tracking-widest text-muted-foreground">Tipo de Controle</Label>
                 <select id="controle" value={controle} onChange={e => setControle(e.target.value)} className="w-full bg-background/50 border border-border rounded-xl h-11 px-3 text-sm text-foreground appearance-none focus:outline-none focus:ring-1 focus:ring-primary">
