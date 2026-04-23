@@ -263,11 +263,12 @@ export function Header() {
              </div>
           </div>
         </DialogContent>
-      </Dialog>
-      
-      <button onClick={handleLogout} className="ml-6 flex items-center gap-2 text-rose-500 hover:text-white hover:bg-rose-500 font-semibold text-sm transition-colors border max-h-min border-rose-500/20 bg-rose-500/10 px-4 py-2 rounded-full shadow-sm active:scale-95">
-        <LogOut className="w-4 h-4" /> Sair
-      </button>
+        </Dialog>
+        
+        <button onClick={handleLogout} className="ml-6 flex items-center gap-2 text-rose-500 hover:text-white hover:bg-rose-500 font-semibold text-sm transition-colors border max-h-min border-rose-500/20 bg-rose-500/10 px-4 py-2 rounded-full shadow-sm active:scale-95">
+          <LogOut className="w-4 h-4" /> Sair
+        </button>
+      </div>
     </header>
   );
 }
