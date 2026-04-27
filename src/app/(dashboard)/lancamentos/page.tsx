@@ -62,6 +62,7 @@ export type Transaction = {
   natureza?: 'Receita' | 'Despesa' | 'Transferência';
   ignored: boolean;
   temp_timestamp?: string;
+  isAuto?: boolean;
 };
 
 type Group = {
@@ -917,13 +918,13 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
           parsed = parsed.map(t => {
             // 1. Try exact match
             if (historyMap[t.desc]) {
-              return { ...t, cat: historyMap[t.desc].cat, natureza: historyMap[t.desc].natureza as any };
+              return { ...t, cat: historyMap[t.desc].cat, natureza: historyMap[t.desc].natureza as any, isAuto: true };
             }
             
             // 2. Try fuzzy match
             const similar = uniqueHistory.find(h => calculateSimilarity(t.desc, h.desc) > 0.7);
             if (similar) {
-              return { ...t, cat: similar.cat, natureza: similar.natureza as any };
+              return { ...t, cat: similar.cat, natureza: similar.natureza as any, isAuto: true };
             }
 
             return t;
@@ -979,7 +980,7 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
        if (!window.confirm(confirmMsg)) return;
     }
 
-    setTransactions(prev => prev.map(t => t.id === id ? { ...t, cat: val } : t));
+    setTransactions(prev => prev.map(item => item.id === id ? { ...item, cat: val, isAuto: false } : item));
 
     // Ask for retroactive update
     const confirmRetro = window.confirm(`Deseja aplicar a categoria "${val}" a todos os outros lançamentos (inclusive antigos no banco de dados) que possuem a mesma descrição ou similar a "${targetTx.desc}"?`);
@@ -1269,8 +1270,9 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
                 <tbody>
                   {transactions.map((t) => {
                     const isChecked = !!t.cat || t.ignored;
+                    const autoClass = t.isAuto && !t.ignored ? 'bg-yellow-50/40 border-l-4 border-l-yellow-400/50' : '';
                     return (
-                      <tr key={t.id} className={`border-b border-slate-50 transition-colors ${t.ignored ? 'opacity-30 grayscale bg-slate-50' : 'hover:bg-slate-50/50'} ${isChecked && !t.ignored ? 'bg-emerald-50/30' : ''}`}>
+                      <tr key={t.id} className={`border-b border-slate-50 transition-colors ${t.ignored ? 'opacity-30 grayscale bg-slate-50' : 'hover:bg-slate-50/50'} ${isChecked && !t.ignored && !t.isAuto ? 'bg-emerald-50/30' : ''} ${autoClass}`}>
                         <td className="px-4 py-4 text-center">
                           <input type="checkbox" checked={isChecked} readOnly className="accent-emerald-500 w-4 h-4 cursor-not-allowed opacity-80" />
                         </td>
