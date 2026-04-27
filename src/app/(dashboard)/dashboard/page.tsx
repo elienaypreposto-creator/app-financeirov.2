@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { createClient } from "@/lib/supabase/client";
-import { ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from "recharts";
+import { ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from "recharts";
 
 // Export Libraries
 import * as XLSX from "xlsx";
@@ -48,7 +48,8 @@ export default function DashboardPage() {
     lazer: 0,
     investimentos: 0,
     sobraLiquida: 0,
-    topCategories: [] as { name: string, value: number, percentage: number }[]
+    topCategories: [] as { name: string, value: number, percentage: number }[],
+    monthlyComparison: [] as { name: string, ganhos: number, gastos: number }[]
   });
 
   const incomeColors = ["#00A878", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#10B981"];
@@ -177,6 +178,29 @@ export default function DashboardPage() {
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
 
+    // Monthly Comparison for PF
+    const monthlyMap: Record<number, { ganhos: number, gastos: number }> = {};
+    for (let i = 0; i < 12; i++) monthlyMap[i] = { ganhos: 0, gastos: 0 };
+
+    txs.filter(t => (t.tipo_conta || "").toUpperCase().includes('PF') && t.natureza !== 'Transferência').forEach(t => {
+      const d = parseTrDate(t.data_transacao);
+      const m = d.getMonth();
+      const y = d.getFullYear();
+      if (selectedYears.length === 0 || selectedYears.includes(y)) {
+        if (t.natureza === 'Receita' || (t.valor > 0 && !t.natureza)) {
+          monthlyMap[m].ganhos += t.valor;
+        } else if (t.natureza === 'Despesa' || (t.valor < 0 && !t.natureza)) {
+          monthlyMap[m].gastos += Math.abs(t.valor);
+        }
+      }
+    });
+
+    const monthlyComparisonData = Object.entries(monthlyMap).map(([m, val]) => ({
+      name: monthNames[Number(m)].substring(0, 3),
+      ganhos: val.ganhos,
+      gastos: val.gastos
+    }));
+
     setPfStats({
       incomeData: incomeFinalData,
       totalIncome: totalIncomePF,
@@ -184,7 +208,8 @@ export default function DashboardPage() {
       lazer,
       investimentos,
       sobraLiquida: totalIncomePF - essenciais - lazer - investimentos,
-      topCategories
+      topCategories,
+      monthlyComparison: monthlyComparisonData
     });
   };
 
@@ -395,29 +420,53 @@ export default function DashboardPage() {
                     </CardContent>
                  </Card>
 
-                 <Card className="bg-white border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2.5rem] p-10 flex flex-col border-t-4 border-slate-100">
+                 {/* TOP CATEGORIAS DE DESPESA */}
+                 <Card className="bg-white border-0 shadow-[0_20px_50px_rgba(0,0,0,0.04)] rounded-[2.5rem] p-8 md:p-10 flex flex-col min-h-[500px] border-t-4 border-slate-100">
                     <CardHeader className="p-0 mb-8">
                       <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
                         <ListChecks className="w-4 h-4 text-emerald-500" /> Top Categorias de Despesa
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="p-0 flex-1 flex flex-col gap-8">
-                       {pfStats.topCategories.length > 0 ? pfStats.topCategories.map((cat, idx) => (
-                         <div key={idx} className="space-y-3">
-                            <div className="flex justify-between items-end">
-                               <div><p className="font-black text-slate-800 text-sm">{cat.name}</p><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Participação: {Math.round(cat.percentage)}%</p></div>
-                               <p className="text-sm font-black text-slate-700">{formatBRL(cat.value)}</p>
-                            </div>
-                            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex">
-                               <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${cat.percentage}%` }} />
-                            </div>
-                         </div>
-                       )) : (
-                         <div className="flex-1 flex flex-col items-center justify-center text-center opacity-40">
-                            <Info className="w-10 h-10 mb-4" />
-                            <p className="text-sm font-bold uppercase tracking-widest">Nenhuma despesa<br/>classificada para o período</p>
-                         </div>
-                       )}
+                    <CardContent className="p-0 flex-1 flex flex-col items-center">
+                        <div className="w-full h-72 relative mb-6">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie 
+                                data={pfStats.topCategories} 
+                                cx="50%" 
+                                cy="50%" 
+                                innerRadius={70} 
+                                outerRadius={90} 
+                                paddingAngle={5} 
+                                dataKey="value" 
+                                stroke="none"
+                                label={renderCustomizedLabel}
+                                labelLine={true}
+                              >
+                                {pfStats.topCategories.map((entry, index) => <Cell key={`cell-${index}`} fill={incomeColors[index % incomeColors.length]} />)}
+                              </Pie>
+                              <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', fontWeight: 'bold' }} />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                        
+                        {/* Lista de Categorias de Despesa seguindo o padrão ao lado */}
+                        <div className="w-full space-y-4">
+                           {pfStats.topCategories.length > 0 ? pfStats.topCategories.map((item, idx) => (
+                             <div key={idx} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 transition-all hover:bg-slate-50">
+                                <div className="flex items-center gap-3">
+                                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: incomeColors[idx % incomeColors.length] }}></div>
+                                   <div>
+                                      <p className="text-xs font-black text-slate-700 uppercase tracking-tight">{item.name}</p>
+                                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{item.percentage.toFixed(1)}% do total</p>
+                                   </div>
+                                </div>
+                                <p className="text-sm font-black text-slate-800">{formatBRL(item.value)}</p>
+                             </div>
+                           )) : (
+                             <div className="text-center py-10 opacity-30 italic text-xs font-bold uppercase tracking-widest">Aguardando dados de despesas...</div>
+                           )}
+                        </div>
                     </CardContent>
                  </Card>
                </div>
@@ -426,22 +475,32 @@ export default function DashboardPage() {
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
                     <div>
                         <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-3">
-                          <TrendingUp className="w-4 h-4 text-emerald-500" /> Evolução de Saldo Líquido
+                          <TrendingUp className="w-4 h-4 text-emerald-500" /> Comparativo de Fluxo PF (Ganhos x Gastos)
                         </CardTitle>
-                        <p className="text-5xl font-black text-slate-800 tracking-tighter">{formatBRL(pfStats.sobraLiquida)}</p>
-                        <p className="text-xs font-bold text-slate-400 mt-1 uppercase tracking-widest">Saldo pós despesas e transferências</p>
+                        <div className="flex items-baseline gap-4">
+                           <p className="text-5xl font-black text-slate-800 tracking-tighter">{formatBRL(pfStats.sobraLiquida)}</p>
+                           <span className={`text-xs font-bold px-3 py-1 rounded-full ${pfStats.sobraLiquida >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                              {pfStats.sobraLiquida >= 0 ? 'Superávit' : 'Déficit'}
+                           </span>
+                        </div>
+                        <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest">Evolução mensal das suas finanças pessoais</p>
                     </div>
                   </div>
-                  <div className="w-full h-64 mt-4">
+                  <div className="w-full h-80 mt-4">
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={balanceData}>
-                        <defs><linearGradient id="colorPF" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00A878" stopOpacity={0.15}/><stop offset="95%" stopColor="#00A878" stopOpacity={0}/></linearGradient></defs>
+                      <BarChart data={pfStats.monthlyComparison}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                        <XAxis dataKey="name" hide />
-                        <YAxis hide />
-                        <Tooltip />
-                        <Area type="monotone" dataKey="balance" stroke="#00A878" strokeWidth={5} fillOpacity={1} fill="url(#colorPF)" />
-                      </AreaChart>
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94A3B8' }} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94A3B8' }} tickFormatter={(val) => `R$ ${val/1000}k`} />
+                        <Tooltip 
+                          cursor={{ fill: '#F8FAFC' }} 
+                          contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
+                          formatter={(value: number) => formatBRL(value)}
+                        />
+                        <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em' }} />
+                        <Bar name="Ganhos" dataKey="ganhos" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={20} />
+                        <Bar name="Gastos" dataKey="gastos" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={20} />
+                      </BarChart>
                     </ResponsiveContainer>
                   </div>
                </Card>
