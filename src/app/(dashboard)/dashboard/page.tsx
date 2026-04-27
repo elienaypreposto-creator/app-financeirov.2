@@ -377,26 +377,42 @@ export default function DashboardPage() {
                        <div className="w-full h-72 relative">
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
+                              <defs>
+                                <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                                  <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                                  <feOffset dx="2" dy="4" result="offsetblur" />
+                                  <feComponentTransfer>
+                                    <feFuncA type="linear" slope="0.5" />
+                                  </feComponentTransfer>
+                                  <feMerge>
+                                    <feMergeNode />
+                                    <feMergeNode in="SourceGraphic" />
+                                  </feMerge>
+                                </filter>
+                              </defs>
                               <Pie 
                                 data={pfStats.incomeData} 
                                 cx="50%" 
                                 cy="50%" 
-                                innerRadius={70} 
+                                innerRadius={0} 
                                 outerRadius={90} 
-                                paddingAngle={5} 
                                 dataKey="value" 
-                                stroke="none"
+                                stroke="#fff"
+                                strokeWidth={2}
                                 label={renderCustomizedLabel}
                                 labelLine={true}
+                                isAnimationActive={true}
                               >
-                                {pfStats.incomeData.map((entry, index) => <Cell key={`cell-${index}`} fill={incomeColors[index % incomeColors.length]} />)}
+                                {pfStats.incomeData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={incomeColors[index % incomeColors.length]} style={{ filter: 'url(#shadow)' }} />
+                                ))}
                               </Pie>
                               <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', fontWeight: 'bold' }} />
                             </PieChart>
                           </ResponsiveContainer>
-                          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Geral</p>
-                             <p className="text-2xl font-black text-slate-800 tracking-tighter">{formatBRL(pfStats.totalIncome)}</p>
+                          <div className="absolute bottom-4 right-4 text-right">
+                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Geral</p>
+                             <p className="text-xl font-black text-slate-800 tracking-tighter">{formatBRL(pfStats.totalIncome)}</p>
                           </div>
                        </div>
                        
@@ -428,26 +444,32 @@ export default function DashboardPage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="p-0 flex-1 flex flex-col items-center">
-                        <div className="w-full h-72 relative mb-6">
+                        <div className="w-full h-80 relative mb-6">
                           <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                               <Pie 
                                 data={pfStats.topCategories} 
                                 cx="50%" 
                                 cy="50%" 
-                                innerRadius={70} 
+                                innerRadius={0} 
                                 outerRadius={90} 
-                                paddingAngle={5} 
                                 dataKey="value" 
-                                stroke="none"
+                                stroke="#fff"
+                                strokeWidth={2}
                                 label={renderCustomizedLabel}
                                 labelLine={true}
                               >
-                                {pfStats.topCategories.map((entry, index) => <Cell key={`cell-${index}`} fill={incomeColors[index % incomeColors.length]} />)}
+                                {pfStats.topCategories.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={incomeColors[index % incomeColors.length]} style={{ filter: 'url(#shadow)' }} />
+                                ))}
                               </Pie>
                               <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', fontWeight: 'bold' }} />
                             </PieChart>
                           </ResponsiveContainer>
+                          <div className="absolute bottom-4 right-4 text-right">
+                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Gastos</p>
+                             <p className="text-xl font-black text-slate-800 tracking-tighter">{formatBRL(pfStats.essenciais + pfStats.lazer + pfStats.investimentos)}</p>
+                          </div>
                         </div>
                         
                         {/* Lista de Categorias de Despesa seguindo o padrão ao lado */}
@@ -491,7 +513,7 @@ export default function DashboardPage() {
                       <BarChart data={pfStats.monthlyComparison}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                         <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94A3B8' }} dy={10} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94A3B8' }} tickFormatter={(val) => `R$ ${val/1000}k`} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94A3B8' }} tickFormatter={(val) => `R$ ${val/1000}mil`} />
                         <Tooltip 
                           cursor={{ fill: '#F8FAFC' }} 
                           contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
