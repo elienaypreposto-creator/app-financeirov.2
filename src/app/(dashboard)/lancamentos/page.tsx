@@ -16,6 +16,38 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 
 // ========================================
+// UTILS
+// ========================================
+
+const normalizeDescription = (desc: string) => {
+  if (!desc) return "";
+  return desc
+    .toUpperCase()
+    .replace(/\d{2}\/\d{2}/g, "") // Remove dates like 14/02
+    .replace(/DEBITO VISA ELECTRON BRASIL/g, "")
+    .replace(/PIX ENVIADO/g, "")
+    .replace(/PIX RECEBIDO/g, "")
+    .replace(/\d+/g, "") // Remove other numbers
+    .replace(/\s+/g, " ") // Collapse spaces
+    .trim();
+};
+
+const calculateSimilarity = (s1: string, s2: string) => {
+  const n1 = normalizeDescription(s1);
+  const n2 = normalizeDescription(s2);
+  if (!n1 || !n2) return 0;
+  if (n1 === n2) return 1.0;
+  
+  // Word overlap similarity
+  const words1 = n1.split(" ").filter(w => w.length > 2);
+  const words2 = n2.split(" ").filter(w => w.length > 2);
+  if (words1.length === 0 || words2.length === 0) return 0;
+  
+  const intersection = words1.filter(w => words2.includes(w));
+  return (2.0 * intersection.length) / (words1.length + words2.length);
+};
+
+// ========================================
 // TYPES
 // ========================================
 
@@ -860,30 +892,40 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
             .eq('user_id', authData.user.id)
             .eq('banco', selectedBank);
 
-          // Fetch History for suggestions
-          const uniqueDescs = Array.from(new Set(parsed.map(t => t.desc)));
+          // Fetch History for suggestions - include more history for fuzzy matching
           const { data: history } = await supabase.from('transactions')
             .select('descricao, categoria, natureza')
             .eq('user_id', authData.user.id)
-            .in('descricao', uniqueDescs)
             .not('categoria', 'is', null)
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: false })
+            .limit(1000);
 
           const historyMap: Record<string, { cat: string, natureza: string }> = {};
+          const uniqueHistory: { desc: string, cat: string, natureza: string }[] = [];
+
           if (history) {
             history.forEach(h => {
               if (!historyMap[h.descricao]) {
                 historyMap[h.descricao] = { cat: h.categoria, natureza: h.natureza };
+                uniqueHistory.push({ desc: h.descricao, cat: h.categoria, natureza: h.natureza });
               }
             });
             setDescriptionHistory(prev => ({ ...prev, ...historyMap }));
           }
 
-          // Apply Suggestions
+          // Apply Suggestions with Fuzzy Logic
           parsed = parsed.map(t => {
+            // 1. Try exact match
             if (historyMap[t.desc]) {
               return { ...t, cat: historyMap[t.desc].cat, natureza: historyMap[t.desc].natureza as any };
             }
+            
+            // 2. Try fuzzy match
+            const similar = uniqueHistory.find(h => calculateSimilarity(t.desc, h.desc) > 0.7);
+            if (similar) {
+              return { ...t, cat: similar.cat, natureza: similar.natureza as any };
+            }
+
             return t;
           });
 
@@ -940,24 +982,40 @@ function ImportacaoView({ onSave, onBack, userId, initialGroup }: { onSave: () =
     setTransactions(prev => prev.map(t => t.id === id ? { ...t, cat: val } : t));
 
     // Ask for retroactive update
-    const hasOthers = transactions.some(t => t.desc === targetTx.desc && t.id !== id);
-    const confirmRetro = window.confirm(`Deseja aplicar a categoria "${val}" a todos os outros lançamentos (inclusive antigos no banco de dados) que possuem a mesma descrição "${targetTx.desc}"?`);
+    const confirmRetro = window.confirm(`Deseja aplicar a categoria "${val}" a todos os outros lançamentos (inclusive antigos no banco de dados) que possuem a mesma descrição ou similar a "${targetTx.desc}"?`);
     
     if (confirmRetro) {
-      // Update current list
-      setTransactions(prev => prev.map(t => t.desc === targetTx.desc ? { ...t, cat: val } : t));
+      // Update current list with fuzzy logic
+      setTransactions(prev => prev.map(t => calculateSimilarity(t.desc, targetTx.desc) > 0.7 ? { ...t, cat: val } : t));
       
       // Update Database
       const { data: authData } = await supabase.auth.getUser();
       if (authData?.user) {
-        const { error } = await supabase.from('transactions')
-          .update({ categoria: val, status: 'Conciliado' })
-          .eq('user_id', authData.user.id)
-          .eq('descricao', targetTx.desc);
+        // Fetch descriptions to compare
+        const { data: allDescs } = await supabase.from('transactions')
+          .select('descricao')
+          .eq('user_id', authData.user.id);
         
-        if (error) console.error("Erro ao atualizar histórico:", error.message);
-        else {
-          setDescriptionHistory(prev => ({ ...prev, [targetTx.desc]: { cat: val, natureza: targetTx.natureza || 'Despesa' } }));
+        if (allDescs) {
+          const similarDescs = Array.from(new Set(allDescs
+            .filter(d => calculateSimilarity(d.descricao, targetTx.desc) > 0.7)
+            .map(d => d.descricao)));
+
+          if (similarDescs.length > 0) {
+            const { error } = await supabase.from('transactions')
+              .update({ categoria: val, status: 'Conciliado' })
+              .eq('user_id', authData.user.id)
+              .in('descricao', similarDescs);
+            
+            if (error) console.error("Erro ao atualizar histórico:", error.message);
+            else {
+              setDescriptionHistory(prev => {
+                const newHistory = { ...prev };
+                similarDescs.forEach(d => { newHistory[d] = { cat: val, natureza: targetTx.natureza || 'Despesa' }; });
+                return newHistory;
+              });
+            }
+          }
         }
       }
     }
