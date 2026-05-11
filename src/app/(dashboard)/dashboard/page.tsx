@@ -22,8 +22,8 @@ export default function DashboardPage() {
   const [aiInsights, setAiInsights] = useState<string | null>(null);
 
   // Filter States
-  const [selectedYears, setSelectedYears] = useState<number[]>([]); 
-  const [selectedMonths, setSelectedMonths] = useState<number[]>([]); 
+  const [selectedYears, setSelectedYears] = useState<number[]>([]);
+  const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
   const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
   // Data States
@@ -99,7 +99,7 @@ export default function DashboardPage() {
 
     let fatMensal = 0;
     let despOp = 0;
-    
+
     // Process PJ (Business)
     filtered.filter(t => (t.tipo_conta || "").toUpperCase().includes('PJ') && t.natureza !== 'Transferência').forEach(t => {
       if (t.natureza === 'Receita') fatMensal += t.valor;
@@ -109,18 +109,18 @@ export default function DashboardPage() {
     });
 
     const currentYear = new Date().getFullYear();
-    const fatAnualAcumulado = txs.filter(t => 
-      (t.tipo_conta || "").toUpperCase().includes('PJ') && 
-      (t.natureza === 'Receita' || (t.valor > 0 && !t.natureza)) && 
+    const fatAnualAcumulado = txs.filter(t =>
+      (t.tipo_conta || "").toUpperCase().includes('PJ') &&
+      (t.natureza === 'Receita' || (t.valor > 0 && !t.natureza)) &&
       t.natureza !== 'Transferência' &&
       parseTrDate(t.data_transacao).getFullYear() === currentYear
-    ).reduce((acc, t) => acc + t.valor, 0); 
+    ).reduce((acc, t) => acc + t.valor, 0);
 
     const proLabore = fatMensal * 0.28;
     const dasInss = fatMensal * 0.06;
     const lucroIsento = (fatMensal) - proLabore - despOp - dasInss;
     const realLucroIsento = lucroIsento > 0 ? lucroIsento : 0;
-    
+
     setPjStats({
       faturamentoAnual: fatAnualAcumulado,
       faturamentoMensal: fatMensal,
@@ -152,7 +152,7 @@ export default function DashboardPage() {
       } else if (t.natureza === 'Despesa' || (t.valor < 0 && !t.natureza)) {
         const val = Math.abs(t.valor);
         const cat = (t.categoria || "Diversos");
-        
+
         expenseCatMap[cat] = (expenseCatMap[cat] || 0) + val;
 
         const lowerCat = cat.toLowerCase();
@@ -170,10 +170,10 @@ export default function DashboardPage() {
 
     const totalSpent = essenciais + lazer + investimentos;
     const topCategories = Object.entries(expenseCatMap)
-      .map(([name, value]) => ({ 
-        name, 
-        value, 
-        percentage: totalSpent > 0 ? (value / totalSpent) * 100 : 0 
+      .map(([name, value]) => ({
+        name,
+        value,
+        percentage: totalSpent > 0 ? (value / totalSpent) * 100 : 0
       }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
@@ -259,46 +259,46 @@ export default function DashboardPage() {
             <h1 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">Dashboard Central</h1>
             <p className="text-slate-400 text-[10px] font-bold mt-2 uppercase tracking-widest opacity-70">Gestão integrada do seu CNPJ e do seu CPF</p>
           </div>
-          
+
           {/* Tabs moved to Header */}
-          
+
           <div className="flex items-center gap-0 bg-white border border-slate-200 p-1.5 rounded-full shadow-sm">
-             <div className="flex flex-col px-4 border-r border-slate-100">
-               <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5">Fiscal/Ano</span>
-               <DropdownMenu>
-                 <DropdownMenuTrigger className="flex items-center min-w-[70px] justify-between text-slate-800 text-xs font-black hover:text-emerald-600 transition-colors focus:outline-none">
-                   {selectedYears.length === 0 ? "Anos" : selectedYears.length === 1 ? selectedYears[0] : "Vários"} <ChevronDown className="w-3 h-3 opacity-30 ml-2" />
-                 </DropdownMenuTrigger>
-                 <DropdownMenuContent className="w-[120px] bg-white border-slate-200 text-slate-700 rounded-xl shadow-2xl">
-                    {[2026, 2025, 2024].map(y => (
-                      <DropdownMenuCheckboxItem key={y} checked={selectedYears.includes(y)} onCheckedChange={(c) => setSelectedYears(p => c ? [...p, y] : p.filter(i => i !== y))} className="font-bold text-xs">{y}</DropdownMenuCheckboxItem>
-                    ))}
-                 </DropdownMenuContent>
-               </DropdownMenu>
-             </div>
+            <div className="flex flex-col px-4 border-r border-slate-100">
+              <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5">Fiscal/Ano</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center min-w-[70px] justify-between text-slate-800 text-xs font-black hover:text-emerald-600 transition-colors focus:outline-none">
+                  {selectedYears.length === 0 ? "Anos" : selectedYears.length === 1 ? selectedYears[0] : "Vários"} <ChevronDown className="w-3 h-3 opacity-30 ml-2" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[120px] bg-white border-slate-200 text-slate-700 rounded-xl shadow-2xl">
+                  {[2026, 2025, 2024].map(y => (
+                    <DropdownMenuCheckboxItem key={y} checked={selectedYears.includes(y)} onCheckedChange={(c) => setSelectedYears(p => c ? [...p, y] : p.filter(i => i !== y))} className="font-bold text-xs">{y}</DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
-             <div className="flex flex-col px-4">
-               <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5">Mês Ref.</span>
-               <DropdownMenu>
-                 <DropdownMenuTrigger className="flex items-center min-w-[100px] justify-between text-slate-800 text-xs font-black hover:text-emerald-600 transition-colors focus:outline-none">
-                   {selectedMonths.length === 0 ? "Todos" : selectedMonths.length === 1 ? monthNames[selectedMonths[0]] : "Múltiplos"} <ChevronDown className="w-3 h-3 opacity-30 ml-2" />
-                 </DropdownMenuTrigger>
-                 <DropdownMenuContent className="w-[160px] bg-white border-slate-200 text-slate-700 rounded-xl max-h-[300px] overflow-y-auto shadow-2xl">
-                    {monthNames.map((name, i) => (
-                      <DropdownMenuCheckboxItem key={i} checked={selectedMonths.includes(i)} onCheckedChange={(c) => setSelectedMonths(p => c ? [...p, i] : p.filter(idx => idx !== i))} className="font-bold text-xs">{name}</DropdownMenuCheckboxItem>
-                    ))}
-                 </DropdownMenuContent>
-               </DropdownMenu>
-             </div>
+            <div className="flex flex-col px-4">
+              <span className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5">Mês Ref.</span>
+              <DropdownMenu>
+                <DropdownMenuTrigger className="flex items-center min-w-[100px] justify-between text-slate-800 text-xs font-black hover:text-emerald-600 transition-colors focus:outline-none">
+                  {selectedMonths.length === 0 ? "Todos" : selectedMonths.length === 1 ? monthNames[selectedMonths[0]] : "Múltiplos"} <ChevronDown className="w-3 h-3 opacity-30 ml-2" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[160px] bg-white border-slate-200 text-slate-700 rounded-xl max-h-[300px] overflow-y-auto shadow-2xl">
+                  {monthNames.map((name, i) => (
+                    <DropdownMenuCheckboxItem key={i} checked={selectedMonths.includes(i)} onCheckedChange={(c) => setSelectedMonths(p => c ? [...p, i] : p.filter(idx => idx !== i))} className="font-bold text-xs">{name}</DropdownMenuCheckboxItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
 
-             <Button variant="ghost" size="icon" onClick={() => fetchTransactions()} className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 h-9 w-9 rounded-full transition-all ml-1"><RefreshCcw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} /></Button>
+            <Button variant="ghost" size="icon" onClick={() => fetchTransactions()} className="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 h-9 w-9 rounded-full transition-all ml-1"><RefreshCcw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} /></Button>
           </div>
         </div>
 
         <main className="flex-1 flex flex-col xl:flex-row overflow-hidden relative">
           <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar space-y-10">
             <TabsContent value="pj" className="space-y-10 mt-0 focus-visible:ring-0">
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
                 <Card className="bg-white border-0 shadow-[0_20px_50px_rgba(0,0,0,0.04)] rounded-[2.5rem] p-8 md:p-10 flex flex-col justify-between group overflow-hidden relative border-t-4 border-emerald-500 transition-all hover:shadow-emerald-500/10">
                   <CardHeader className="p-0 mb-8">
                     <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
@@ -317,7 +317,7 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div className="relative w-full h-5 bg-slate-100 rounded-full overflow-hidden shadow-inner mb-2">
-                       <div className={`h-full transition-all duration-1000 ease-out shadow-lg ${pjStats.meiProgress > 85 ? 'bg-rose-500' : 'bg-[#00A878]'}`} style={{ width: `${Math.min(100, pjStats.meiProgress)}%` }} />
+                      <div className={`h-full transition-all duration-1000 ease-out shadow-lg ${pjStats.meiProgress > 85 ? 'bg-rose-500' : 'bg-[#00A878]'}`} style={{ width: `${Math.min(100, pjStats.meiProgress)}%` }} />
                     </div>
                   </CardContent>
                 </Card>
@@ -345,187 +345,187 @@ export default function DashboardPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-0 overflow-x-auto">
-                    <table className="w-full text-sm min-w-[600px]">
-                      <thead>
-                        <tr className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
-                          <th className="px-10 py-5 text-left">Indicador</th>
-                          <th className="px-10 py-5 text-right">Valor</th>
-                          <th className="px-10 py-5 text-right">Status</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-50">
-                        <tr><td className="px-10 py-6 font-bold">Receita Bruta</td><td className="px-10 py-6 text-right font-black">{formatBRL(pjStats.faturamentoMensal)}</td><td className="px-10 py-6 text-right"><span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">RECEITA</span></td></tr>
-                        <tr><td className="px-10 py-6 font-bold text-slate-600">(-) Despesas</td><td className="px-10 py-6 text-right font-black text-rose-500">-{formatBRL(pjStats.despesasOperacionais)}</td><td className="px-10 py-6 text-right"><span className="bg-rose-50 text-rose-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">DESPESA</span></td></tr>
-                        <tr><td className="px-10 py-6 font-bold text-slate-600">(-) Impostos</td><td className="px-10 py-6 text-right font-black text-rose-500">-{formatBRL(pjStats.faturamentoMensal * 0.34)}</td><td className="px-10 py-6 text-right"><span className="bg-slate-100 text-slate-400 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">IMPOSTOS</span></td></tr>
-                        <tr className="bg-[#00A878]/[0.02]"><td className="px-10 py-8 font-black text-base">Lucro Disponível</td><td className="px-10 py-8 text-right font-black text-[#00A878] text-2xl">{formatBRL(pjStats.lucroIsento)}</td><td className="px-10 py-8 text-right"><span className="bg-[#00A878] text-white px-3 py-1 rounded-full text-[10px] font-black shadow-lg">LUCRO REAL</span></td></tr>
-                      </tbody>
-                    </table>
+                  <table className="w-full text-sm min-w-[600px]">
+                    <thead>
+                      <tr className="bg-slate-50/50 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                        <th className="px-10 py-5 text-left">Indicador</th>
+                        <th className="px-10 py-5 text-right">Valor</th>
+                        <th className="px-10 py-5 text-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      <tr><td className="px-10 py-6 font-bold">Receita Bruta</td><td className="px-10 py-6 text-right font-black">{formatBRL(pjStats.faturamentoMensal)}</td><td className="px-10 py-6 text-right"><span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">RECEITA</span></td></tr>
+                      <tr><td className="px-10 py-6 font-bold text-slate-600">(-) Despesas</td><td className="px-10 py-6 text-right font-black text-rose-500">-{formatBRL(pjStats.despesasOperacionais)}</td><td className="px-10 py-6 text-right"><span className="bg-rose-50 text-rose-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">DESPESA</span></td></tr>
+                      <tr><td className="px-10 py-6 font-bold text-slate-600">(-) Impostos</td><td className="px-10 py-6 text-right font-black text-rose-500">-{formatBRL(pjStats.faturamentoMensal * 0.34)}</td><td className="px-10 py-6 text-right"><span className="bg-slate-100 text-slate-400 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">IMPOSTOS</span></td></tr>
+                      <tr className="bg-[#00A878]/[0.02]"><td className="px-10 py-8 font-black text-base">Lucro Disponível</td><td className="px-10 py-8 text-right font-black text-[#00A878] text-2xl">{formatBRL(pjStats.lucroIsento)}</td><td className="px-10 py-8 text-right"><span className="bg-[#00A878] text-white px-3 py-1 rounded-full text-[10px] font-black shadow-lg">LUCRO REAL</span></td></tr>
+                    </tbody>
+                  </table>
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="pf" className="space-y-10 mt-0 focus-visible:ring-0">
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
-                 {/* COMPOSIÇÃO DE RENDA TOTAL */}
-                 <Card className="bg-white border-0 shadow-[0_20px_50px_rgba(0,0,0,0.04)] rounded-[2.5rem] p-8 md:p-10 flex flex-col min-h-[500px] border-t-4 border-slate-100">
-                    <CardHeader className="p-0 mb-4">
-                      <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
-                        <PieChartIcon className="w-4 h-4 text-emerald-500" /> Composição de Renda Total
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0 flex-1 flex flex-col items-center">
-                       <div className="w-full h-72 relative">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <defs>
-                                <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                                  <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
-                                  <feOffset dx="2" dy="4" result="offsetblur" />
-                                  <feComponentTransfer>
-                                    <feFuncA type="linear" slope="0.5" />
-                                  </feComponentTransfer>
-                                  <feMerge>
-                                    <feMergeNode />
-                                    <feMergeNode in="SourceGraphic" />
-                                  </feMerge>
-                                </filter>
-                              </defs>
-                              <Pie 
-                                data={pfStats.incomeData} 
-                                cx="50%" 
-                                cy="50%" 
-                                innerRadius={0} 
-                                outerRadius={90} 
-                                dataKey="value" 
-                                stroke="#fff"
-                                strokeWidth={2}
-                                label={renderCustomizedLabel}
-                                labelLine={true}
-                                isAnimationActive={true}
-                              >
-                                {pfStats.incomeData.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={incomeColors[index % incomeColors.length]} style={{ filter: 'url(#shadow)' }} />
-                                ))}
-                              </Pie>
-                              <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', fontWeight: 'bold' }} />
-                            </PieChart>
-                          </ResponsiveContainer>
-                          <div className="absolute bottom-4 right-4 text-right">
-                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Geral</p>
-                             <p className="text-xl font-black text-slate-800 tracking-tighter">{formatBRL(pfStats.totalIncome)}</p>
-                          </div>
-                       </div>
-                       
-                       {/* Lista de Categorias de Renda */}
-                       <div className="w-full mt-10 space-y-4">
-                          {pfStats.incomeData.length > 0 ? pfStats.incomeData.map((item, idx) => (
-                            <div key={idx} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 transition-all hover:bg-slate-50">
-                               <div className="flex items-center gap-3">
-                                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: incomeColors[idx % incomeColors.length] }}></div>
-                                  <div>
-                                     <p className="text-xs font-black text-slate-700 uppercase tracking-tight">{item.name}</p>
-                                     <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{item.percentage.toFixed(1)}% do total</p>
-                                  </div>
-                               </div>
-                               <p className="text-sm font-black text-slate-800">{formatBRL(item.value)}</p>
-                            </div>
-                          )) : (
-                            <div className="text-center py-10 opacity-30 italic text-xs font-bold uppercase tracking-widest">Aguardando dados de renda...</div>
-                          )}
-                       </div>
-                    </CardContent>
-                 </Card>
-
-                 {/* TOP CATEGORIAS DE DESPESA */}
-                 <Card className="bg-white border-0 shadow-[0_20px_50px_rgba(0,0,0,0.04)] rounded-[2.5rem] p-8 md:p-10 flex flex-col min-h-[500px] border-t-4 border-slate-100">
-                    <CardHeader className="p-0 mb-8">
-                      <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
-                        <ListChecks className="w-4 h-4 text-emerald-500" /> Top Categorias de Despesa
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0 flex-1 flex flex-col items-center">
-                        <div className="w-full h-80 relative mb-6">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                              <Pie 
-                                data={pfStats.topCategories} 
-                                cx="50%" 
-                                cy="50%" 
-                                innerRadius={0} 
-                                outerRadius={90} 
-                                dataKey="value" 
-                                stroke="#fff"
-                                strokeWidth={2}
-                                label={renderCustomizedLabel}
-                                labelLine={true}
-                              >
-                                {pfStats.topCategories.map((entry, index) => (
-                                  <Cell key={`cell-${index}`} fill={incomeColors[index % incomeColors.length]} style={{ filter: 'url(#shadow)' }} />
-                                ))}
-                              </Pie>
-                              <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', fontWeight: 'bold' }} />
-                            </PieChart>
-                          </ResponsiveContainer>
-                          <div className="absolute bottom-4 right-4 text-right">
-                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Gastos</p>
-                             <p className="text-xl font-black text-slate-800 tracking-tighter">{formatBRL(pfStats.essenciais + pfStats.lazer + pfStats.investimentos)}</p>
-                          </div>
-                        </div>
-                        
-                        {/* Lista de Categorias de Despesa seguindo o padrão ao lado */}
-                        <div className="w-full space-y-4">
-                           {pfStats.topCategories.length > 0 ? pfStats.topCategories.map((item, idx) => (
-                             <div key={idx} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 transition-all hover:bg-slate-50">
-                                <div className="flex items-center gap-3">
-                                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: incomeColors[idx % incomeColors.length] }}></div>
-                                   <div>
-                                      <p className="text-xs font-black text-slate-700 uppercase tracking-tight">{item.name}</p>
-                                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{item.percentage.toFixed(1)}% do total</p>
-                                   </div>
-                                </div>
-                                <p className="text-sm font-black text-slate-800">{formatBRL(item.value)}</p>
-                             </div>
-                           )) : (
-                             <div className="text-center py-10 opacity-30 italic text-xs font-bold uppercase tracking-widest">Aguardando dados de despesas...</div>
-                           )}
-                        </div>
-                    </CardContent>
-                 </Card>
-               </div>
-
-               <Card className="bg-white border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2.5rem] p-10 border-b-4 border-slate-100">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
-                    <div>
-                        <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-3">
-                          <TrendingUp className="w-4 h-4 text-emerald-500" /> Comparativo de Fluxo PF (Ganhos x Gastos)
-                        </CardTitle>
-                        <div className="flex items-baseline gap-4">
-                           <p className="text-5xl font-black text-slate-800 tracking-tighter">{formatBRL(pfStats.sobraLiquida)}</p>
-                           <span className={`text-xs font-bold px-3 py-1 rounded-full ${pfStats.sobraLiquida >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-                              {pfStats.sobraLiquida >= 0 ? 'Superávit' : 'Déficit'}
-                           </span>
-                        </div>
-                        <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest">Evolução mensal das suas finanças pessoais</p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-10">
+                {/* COMPOSIÇÃO DE RENDA TOTAL */}
+                <Card className="bg-white border-0 shadow-[0_20px_50px_rgba(0,0,0,0.04)] rounded-[2.5rem] p-8 md:p-10 flex flex-col min-h-[500px] border-t-4 border-slate-100">
+                  <CardHeader className="p-0 mb-4">
+                    <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
+                      <PieChartIcon className="w-4 h-4 text-emerald-500" /> Composição de Renda Total
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0 flex-1 flex flex-col items-center">
+                    <div className="w-full h-72 relative">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <defs>
+                            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                              <feGaussianBlur in="SourceAlpha" stdDeviation="3" />
+                              <feOffset dx="2" dy="4" result="offsetblur" />
+                              <feComponentTransfer>
+                                <feFuncA type="linear" slope="0.5" />
+                              </feComponentTransfer>
+                              <feMerge>
+                                <feMergeNode />
+                                <feMergeNode in="SourceGraphic" />
+                              </feMerge>
+                            </filter>
+                          </defs>
+                          <Pie
+                            data={pfStats.incomeData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={0}
+                            outerRadius={90}
+                            dataKey="value"
+                            stroke="#fff"
+                            strokeWidth={2}
+                            label={renderCustomizedLabel}
+                            labelLine={true}
+                            isAnimationActive={true}
+                          >
+                            {pfStats.incomeData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={incomeColors[index % incomeColors.length]} style={{ filter: 'url(#shadow)' }} />
+                            ))}
+                          </Pie>
+                          <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', fontWeight: 'bold' }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute bottom-4 right-4 text-right">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Geral</p>
+                        <p className="text-xl font-black text-slate-800 tracking-tighter">{formatBRL(pfStats.totalIncome)}</p>
+                      </div>
                     </div>
+
+                    {/* Lista de Categorias de Renda */}
+                    <div className="w-full mt-10 space-y-4">
+                      {pfStats.incomeData.length > 0 ? pfStats.incomeData.map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 transition-all hover:bg-slate-50">
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: incomeColors[idx % incomeColors.length] }}></div>
+                            <div>
+                              <p className="text-xs font-black text-slate-700 uppercase tracking-tight">{item.name}</p>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{item.percentage.toFixed(1)}% do total</p>
+                            </div>
+                          </div>
+                          <p className="text-sm font-black text-slate-800">{formatBRL(item.value)}</p>
+                        </div>
+                      )) : (
+                        <div className="text-center py-10 opacity-30 italic text-xs font-bold uppercase tracking-widest">Aguardando dados de renda...</div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* TOP CATEGORIAS DE DESPESA */}
+                <Card className="bg-white border-0 shadow-[0_20px_50px_rgba(0,0,0,0.04)] rounded-[2.5rem] p-8 md:p-10 flex flex-col min-h-[500px] border-t-4 border-slate-100">
+                  <CardHeader className="p-0 mb-8">
+                    <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3">
+                      <ListChecks className="w-4 h-4 text-emerald-500" /> Top Categorias de Despesa
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0 flex-1 flex flex-col items-center">
+                    <div className="w-full h-80 relative mb-6">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={pfStats.topCategories}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={0}
+                            outerRadius={90}
+                            dataKey="value"
+                            stroke="#fff"
+                            strokeWidth={2}
+                            label={renderCustomizedLabel}
+                            labelLine={true}
+                          >
+                            {pfStats.topCategories.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={incomeColors[index % incomeColors.length]} style={{ filter: 'url(#shadow)' }} />
+                            ))}
+                          </Pie>
+                          <Tooltip contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', fontWeight: 'bold' }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute bottom-4 right-4 text-right">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total Gastos</p>
+                        <p className="text-xl font-black text-slate-800 tracking-tighter">{formatBRL(pfStats.essenciais + pfStats.lazer + pfStats.investimentos)}</p>
+                      </div>
+                    </div>
+
+                    {/* Lista de Categorias de Despesa seguindo o padrão ao lado */}
+                    <div className="w-full space-y-4">
+                      {pfStats.topCategories.length > 0 ? pfStats.topCategories.map((item, idx) => (
+                        <div key={idx} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 transition-all hover:bg-slate-50">
+                          <div className="flex items-center gap-3">
+                            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: incomeColors[idx % incomeColors.length] }}></div>
+                            <div>
+                              <p className="text-xs font-black text-slate-700 uppercase tracking-tight">{item.name}</p>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{item.percentage.toFixed(1)}% do total</p>
+                            </div>
+                          </div>
+                          <p className="text-sm font-black text-slate-800">{formatBRL(item.value)}</p>
+                        </div>
+                      )) : (
+                        <div className="text-center py-10 opacity-30 italic text-xs font-bold uppercase tracking-widest">Aguardando dados de despesas...</div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card className="bg-white border-0 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-[2.5rem] p-10 border-b-4 border-slate-100">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+                  <div>
+                    <CardTitle className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] flex items-center gap-3 mb-3">
+                      <TrendingUp className="w-4 h-4 text-emerald-500" /> Comparativo de Fluxo PF (Ganhos x Gastos)
+                    </CardTitle>
+                    <div className="flex items-baseline gap-4">
+                      <p className="text-5xl font-black text-slate-800 tracking-tighter">{formatBRL(pfStats.sobraLiquida)}</p>
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full ${pfStats.sobraLiquida >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
+                        {pfStats.sobraLiquida >= 0 ? 'Superávit' : 'Déficit'}
+                      </span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-400 mt-2 uppercase tracking-widest">Evolução mensal das suas finanças pessoais</p>
                   </div>
-                  <div className="w-full h-80 mt-4">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={pfStats.monthlyComparison}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94A3B8' }} dy={10} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94A3B8' }} tickFormatter={(val) => `R$ ${val/1000}mil`} />
-                        <Tooltip 
-                          cursor={{ fill: '#F8FAFC' }} 
-                          contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
-                          formatter={(value: number) => formatBRL(value)}
-                        />
-                        <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em' }} />
-                        <Bar name="Ganhos" dataKey="ganhos" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={20} />
-                        <Bar name="Gastos" dataKey="gastos" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={20} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-               </Card>
+                </div>
+                <div className="w-full h-80 mt-4">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={pfStats.monthlyComparison}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94A3B8' }} dy={10} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 'bold', fill: '#94A3B8' }} tickFormatter={(val) => `R$ ${val / 1000}mil`} />
+                      <Tooltip
+                        cursor={{ fill: '#F8FAFC' }}
+                        contentStyle={{ borderRadius: '1rem', border: 'none', boxShadow: '0 10px 25px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
+                        formatter={(value: number) => formatBRL(value)}
+                      />
+                      <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em' }} />
+                      <Bar name="Ganhos" dataKey="ganhos" fill="#3B82F6" radius={[4, 4, 0, 0]} barSize={20} />
+                      <Bar name="Gastos" dataKey="gastos" fill="#EF4444" radius={[4, 4, 0, 0]} barSize={20} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
             </TabsContent>
           </div>
 
@@ -539,10 +539,10 @@ export default function DashboardPage() {
               <div className="flex-1 px-8 flex flex-col justify-center items-center py-10">
                 {!aiInsights && !isAnalyzing && (
                   <div className="text-center space-y-10">
-                     <p className="text-slate-500 font-bold text-sm leading-relaxed px-6 italic font-sans italic">"Otimize seu lucro e reduza impostos com o diagnóstico em tempo real."</p>
-                     <button onClick={handleAnalyse} className="group relative bg-slate-900 hover:bg-black text-white rounded-full px-12 h-16 font-black text-xs uppercase tracking-widest flex items-center gap-3 overflow-hidden shadow-xl transition-all hover:scale-105 active:scale-95">
-                       <span className="relative z-10 flex items-center gap-3">Analisar Lançamentos <Sparkles className="w-4 h-4 text-emerald-400" /></span>
-                     </button>
+                    <p className="text-slate-500 font-bold text-sm leading-relaxed px-6 italic font-sans italic">"Otimize seu lucro e reduza impostos com o diagnóstico em tempo real."</p>
+                    <button onClick={handleAnalyse} className="group relative bg-slate-900 hover:bg-black text-white rounded-full px-12 h-16 font-black text-xs uppercase tracking-widest flex items-center gap-3 overflow-hidden shadow-xl transition-all hover:scale-105 active:scale-95">
+                      <span className="relative z-10 flex items-center gap-3">Analisar Lançamentos <Sparkles className="w-4 h-4 text-emerald-400" /></span>
+                    </button>
                   </div>
                 )}
                 {isAnalyzing && (
@@ -553,11 +553,11 @@ export default function DashboardPage() {
                 )}
                 {aiInsights && !isAnalyzing && (
                   <div className="w-full flex flex-col gap-6 animate-in slide-in-from-bottom-8">
-                     <div className="bg-white/80 border border-slate-100 p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden">
-                        <h4 className="text-[#00A878] font-black text-[10px] uppercase tracking-[0.4em] mb-6">Insights Gerados</h4>
-                        <p className="text-slate-700 text-[14px] leading-relaxed font-bold italic">"{aiInsights}"</p>
-                     </div>
-                     <Button variant="ghost" onClick={() => setAiInsights(null)} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-emerald-500 transition-colors">Nova Análise</Button>
+                    <div className="bg-white/80 border border-slate-100 p-8 rounded-[2.5rem] shadow-xl relative overflow-hidden">
+                      <h4 className="text-[#00A878] font-black text-[10px] uppercase tracking-[0.4em] mb-6">Insights Gerados</h4>
+                      <p className="text-slate-700 text-[14px] leading-relaxed font-bold italic">"{aiInsights}"</p>
+                    </div>
+                    <Button variant="ghost" onClick={() => setAiInsights(null)} className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-emerald-500 transition-colors">Nova Análise</Button>
                   </div>
                 )}
               </div>

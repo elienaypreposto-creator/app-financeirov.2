@@ -43,3 +43,6 @@ next-env.d.ts
 # backups
 /temp_backups
 .env
+
+# dify source (evitar bugs com tailwind)
+/dify/
